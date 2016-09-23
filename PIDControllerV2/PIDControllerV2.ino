@@ -34,9 +34,9 @@ void setup() {
 }
 
 void loop() {
-  move_forward_ramp_up(90);
+  rotate_left(90);
   delay(1000);
-  move_backward_ramp_up(90);
+  rotate_right(90);
   delay(1000);
 }
 
@@ -223,19 +223,19 @@ void rotate_left(int angle) {
   while (encoder_right < target_tick*0.2 )
   {
     compensation = tunePID();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
+    md.setSpeeds(-(150 + compensation), 150 - compensation);
   }
 
   while (encoder_right < target_tick*0.7) 
   {
     compensation = tunePID();
-    md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
+    md.setSpeeds(-(left_rotate_speed + compensation), right_rotate_speed - compensation);
   }
   
   while (encoder_right < target_tick) 
   {
     compensation = tunePID();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
+    md.setSpeeds(-(150 + compensation), 150 - compensation);
   }
   
   md.setBrakes(left_brake_speed, right_brake_speed); 
@@ -302,7 +302,7 @@ void right_encoder_rising () {
 /////////////////////////////////////////////////////////////////////////
 
 double tunePID () {
-  double compensation, pervious_encoder_right;
+  double compensation, previous_encoder_right;
   double Kp, Ki, Kd, p, i, d;
   // Okay at HPL
 //  Kp = 50;
@@ -319,6 +319,6 @@ double tunePID () {
   //d = (pervious_encoder_right - encoder_right) * Kd;
   //compensation = p + i + d;
   compensation = p + i;
-  pervious_encoder_right = encoder_right;  
+  previous_encoder_right = encoder_right;
   return compensation;
 }
