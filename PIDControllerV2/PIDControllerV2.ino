@@ -200,9 +200,9 @@ void move_backward_ramp_up (int distance_cm) {
 
 // Rotation
 
-void rotate_right(int angle) {
-  encoder_right = 0;
+void rotate_left(int angle) {
   encoder_left = 0;
+  encoder_right = 0;
   double compensation = 0;
   error = 0;
   integralError = 0;
@@ -242,6 +242,50 @@ void rotate_right(int angle) {
   delay(80);
   md.setBrakes(0, 0);
 }
+
+void rotate_right(int angle) {
+  encoder_left = 0;
+  encoder_right = 0;
+  double compensation = 0;
+  error = 0;
+  integralError = 0;
+  if (angle <= 5) target_tick = angle * 5.2;
+  else if (angle <= 10) target_tick = angle * 6.3;
+  else if (angle <= 15) target_tick = angle * 6.4;
+  else if (angle <= 30) target_tick = angle * 7.7; //7.72
+  else if (angle <= 45) target_tick = angle * 8.01; //8.635
+  else if (angle <= 60) target_tick = angle * 8.3;
+  else if (angle <= 90) target_tick = angle * 8.47; //8.643
+  else if (angle <= 180) target_tick = angle * 9.75;    //tune 180
+  else if (angle <= 360) target_tick = angle * 9.37;
+  else if (angle <= 720) target_tick = angle * 9.15;
+  else if (angle <= 900) target_tick = angle * 9.16;
+  else if (angle <= 1080) target_tick = angle * 9.06;
+  else target_tick = angle * 9.0;
+
+  while (encoder_right < target_tick*0.2 )
+  {
+    compensation = tunePID();
+    md.setSpeeds(150 + compensation, -(150 - compensation));
+  }
+
+  while (encoder_right < target_tick*0.7) 
+  {
+    compensation = tunePID();
+    md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
+  }
+  
+  while (encoder_right < target_tick) 
+  {
+    compensation = tunePID();
+    md.setSpeeds(150 + compensation, -(150 - compensation));
+  }
+  
+  md.setBrakes(left_brake_speed, right_brake_speed); 
+  delay(80);
+  md.setBrakes(0, 0);
+}
+
 
 // rising left and right will capture the increase in the encoder values
 // that will be used to tune with PID then translate into the distance
