@@ -34,8 +34,10 @@ void setup() {
 }
 
 void loop() {
-  move_forward_ramp_up(10);
-  delay(500);
+  move_forward_ramp_up(90);
+  delay(1000);
+  move_backward_ramp_up(90);
+  delay(1000);
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -50,25 +52,24 @@ void move_forward_ramp_up (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  //target_tick = distance_cm * 58.5;
-  if (distance_cm<= 10) target_tick = distance_cm * 58.15;
-//  else if(distance_cm<=20) target_tick = distance_cm * 58.3;
-//  else if(distance_cm<=30) target_tick = distance_cm * 58.5;
-//  else if(distance_cm<=40) target_tick = distance_cm * 59.0;
-//  else if(distance_cm<=50) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=60) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=70) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=80) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=90) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=100) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=110) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=120) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=130) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=140) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=150) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=160) target_tick = distance_cm * 59.3;
-//  else if(distance_cm<=170) target_tick = distance_cm * 59.3;
-  else target_tick = distance_cm * 58.5;
+  if (distance_cm<= 10) target_tick = distance_cm * 58.3;
+  else if(distance_cm<=20) target_tick = distance_cm * 58.5;
+  else if(distance_cm<=30) target_tick = distance_cm * 58.5;
+  else if(distance_cm<=40) target_tick = distance_cm * 59.0;
+  else if(distance_cm<=50) target_tick = distance_cm * 59.3;
+  else if(distance_cm<=60) target_tick = distance_cm * 59.3;
+  else if(distance_cm<=70) target_tick = distance_cm * 59.3;
+  else if(distance_cm<=80) target_tick = distance_cm * 59.3;
+  else if(distance_cm<=90) target_tick = distance_cm * 59.4; //calibration done 
+  else if(distance_cm<=100) target_tick = distance_cm * 59.8; //calibration done
+  else if(distance_cm<=110) target_tick = distance_cm * 59.8; 
+  else if(distance_cm<=120) target_tick = distance_cm * 60.3; 
+  else if(distance_cm<=130) target_tick = distance_cm * 60.3; 
+  else if(distance_cm<=140) target_tick = distance_cm * 60.5; 
+  else if(distance_cm<=150) target_tick = distance_cm * 60.5; 
+  else if(distance_cm<=160) target_tick = distance_cm * 60.5; 
+  else if(distance_cm<=170) target_tick = distance_cm * 60.5; 
+  else target_tick = distance_cm * 60.5;
   
   Serial.print("Distance_cm: ");
   Serial.println(distance_cm);
@@ -81,25 +82,25 @@ void move_forward_ramp_up (int distance_cm) {
     md.setSpeeds(100 + compensation, 100 - compensation);
   }
   
-  while (encoder_right < 150 )
+  while (encoder_right < 200)
   {
     compensation = tunePID(); 
     md.setSpeeds(200 + compensation, 200 - compensation);
   }
 
-  while (encoder_right < 250 )
+  while (encoder_right < 250)
   {
     compensation = tunePID();
     md.setSpeeds(300 + compensation, 300 - compensation);
   }
 
-  while (encoder_right < target_tick - 250)
+  while (encoder_right < target_tick - 200)
   {
     compensation = tunePID();
     md.setSpeeds(left_straight_speed + compensation, right_straight_speed - compensation);
   }
   
-  while (encoder_right < target_tick - 150)
+  while (encoder_right < target_tick - 100)
   {
     compensation = tunePID();
     md.setSpeeds(200 + compensation, 200 - compensation);
@@ -110,17 +111,14 @@ void move_forward_ramp_up (int distance_cm) {
     compensation = tunePID();
     md.setSpeeds(100 + compensation, 100 - compensation);
   }
-  //Okay at HPL
-  //md.setBrakes(375, 400);
-  // at HWL2
-  md.setBrakes(left_brake_speed, right_brake_speed);
   Serial.print("encoder_left: ");
   Serial.println(encoder_left);
   Serial.print("encoder_right: ");
   Serial.println(encoder_right);
-  delay(100);
-  //md.setBrakes(0, 0);
-} 
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  delay(1000);
+  md.setBrakes(0, 0);
+}
 
 void move_backward_ramp_up (int distance_cm) {
   encoder_left = 0;
@@ -143,10 +141,10 @@ void move_backward_ramp_up (int distance_cm) {
   else if(distance_cm<=120) target_tick = distance_cm * 59.3;
   else if(distance_cm<=130) target_tick = distance_cm * 59.3;
   else if(distance_cm<=140) target_tick = distance_cm * 59.3;
-  else if(distance_cm<=150) target_tick = distance_cm * 59.3;
-  else if(distance_cm<=160) target_tick = distance_cm * 59.3;
-  else if(distance_cm<=170) target_tick = distance_cm * 59.3;
-  else target_tick = distance_cm * 59.5;
+  else if(distance_cm<=150) target_tick = distance_cm * 72.5;
+  else if(distance_cm<=160) target_tick = distance_cm * 72.5;
+  else if(distance_cm<=170) target_tick = distance_cm * 72.5;
+  else target_tick = distance_cm * 72.5;
   
   Serial.print("Distance_cm: ");
   Serial.println(distance_cm);
@@ -159,13 +157,13 @@ void move_backward_ramp_up (int distance_cm) {
     md.setSpeeds(-(100 + compensation), -(100 - compensation));
   }
   
-  while (encoder_right < 180)
+  while (encoder_right < 200)
   {
     compensation = tunePID(); 
     md.setSpeeds(-(200 + compensation), -(200 - compensation));
   }
 
-  while (encoder_right < 260)
+  while (encoder_right < 250)
   {
     compensation = tunePID();
     md.setSpeeds(-(300 + compensation), -(300 - compensation));
@@ -202,7 +200,7 @@ void move_backward_ramp_up (int distance_cm) {
 
 // Rotation
 
-void rotateRight(int angle) {
+void rotate_right(int angle) {
   encoder_right = 0;
   encoder_left = 0;
   double compensation = 0;
@@ -267,15 +265,16 @@ double tunePID () {
 //  Ki = 0.1;
 //  Kd = 0.01;
   // Okay at HWL2
-  Kp = 49;
+  Kp = 53; // increase in case it is going left, decrease in case it is going right
   Ki = 0.1;
-  Kd = 0.01;
+  //Kd = 0.01;
   error = encoder_right - encoder_left;
   integralError += error;
   p = error * Kp;
   i = integralError * Ki;
-  d = (pervious_encoder_right - encoder_right) * Kd;
-  compensation = p + i + d;
+  //d = (pervious_encoder_right - encoder_right) * Kd;
+  //compensation = p + i + d;
+  compensation = p + i;
   pervious_encoder_right = encoder_right;  
   return compensation;
 }
