@@ -52,7 +52,7 @@ void move_forward_ramp_up (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm<= 10) target_tick = distance_cm * 58.3;
+  if (distance_cm <= 10) target_tick = distance_cm * 58.3;
   else if(distance_cm<=20) target_tick = distance_cm * 58.5;
   else if(distance_cm<=30) target_tick = distance_cm * 58.5;
   else if(distance_cm<=40) target_tick = distance_cm * 59.0;
@@ -60,7 +60,7 @@ void move_forward_ramp_up (int distance_cm) {
   else if(distance_cm<=60) target_tick = distance_cm * 59.3;
   else if(distance_cm<=70) target_tick = distance_cm * 59.3;
   else if(distance_cm<=80) target_tick = distance_cm * 59.3;
-  else if(distance_cm<=90) target_tick = distance_cm * 59.4; //calibration done 
+  else if(distance_cm<=90) target_tick = distance_cm * 59.6; //calibration done
   else if(distance_cm<=100) target_tick = distance_cm * 59.8; //calibration done
   else if(distance_cm<=110) target_tick = distance_cm * 59.8; 
   else if(distance_cm<=120) target_tick = distance_cm * 60.3; 
@@ -238,7 +238,7 @@ void rotate_right(int angle) {
     md.setSpeeds(150 + compensation, -(150 - compensation));
   }
   
-  md.setBrakes(right_brake_speed,left_brake_speed); 
+  md.setBrakes(left_brake_speed, right_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
