@@ -34,10 +34,8 @@ void setup() {
 }
 
 void loop() {
-  rotate_left(90);
-  delay(1000);
-  rotate_right(90);
-  delay(1000);
+  move_forward_ramp_up(100);
+  rotate_right(180);
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -212,9 +210,9 @@ void rotate_left(int angle) {
   else if (angle <= 30) target_tick = angle * 7.7; //7.72
   else if (angle <= 45) target_tick = angle * 8.01; //8.635
   else if (angle <= 60) target_tick = angle * 8.3;
-  else if (angle <= 90) target_tick = angle * 8.47; //8.643
+  else if (angle <= 90) target_tick = angle * 8.6; //8.643
   else if (angle <= 180) target_tick = angle * 9.75;    //tune 180
-  else if (angle <= 360) target_tick = angle * 9.37;
+  else if (angle <= 360) target_tick = angle * 9.2;
   else if (angle <= 720) target_tick = angle * 9.15;
   else if (angle <= 900) target_tick = angle * 9.16;
   else if (angle <= 1080) target_tick = angle * 9.06;
@@ -255,15 +253,15 @@ void rotate_right(int angle) {
   else if (angle <= 30) target_tick = angle * 7.7; //7.72
   else if (angle <= 45) target_tick = angle * 8.01; //8.635
   else if (angle <= 60) target_tick = angle * 8.3;
-  else if (angle <= 90) target_tick = angle * 8.47; //8.643
-  else if (angle <= 180) target_tick = angle * 9.75;    //tune 180
+  else if (angle <= 90) target_tick = angle * 8.63; //8.643
+  else if (angle <= 180) target_tick = angle * 9.08;    //tune 180
   else if (angle <= 360) target_tick = angle * 9.37;
   else if (angle <= 720) target_tick = angle * 9.15;
   else if (angle <= 900) target_tick = angle * 9.16;
   else if (angle <= 1080) target_tick = angle * 9.06;
   else target_tick = angle * 9.0;
 
-  while (encoder_right < target_tick*0.2 )
+  while (encoder_right < target_tick*0.2)
   {
     compensation = tunePID();
     md.setSpeeds(150 + compensation, -(150 - compensation));
@@ -309,7 +307,7 @@ double tunePID () {
 //  Ki = 0.1;
 //  Kd = 0.01;
   // Okay at HWL2
-  Kp = 53; // increase in case it is going left, decrease in case it is going right
+  Kp = 51.5; // increase in case it is going left, decrease in case it is going right
   Ki = 0.1;
   //Kd = 0.01;
   error = encoder_right - encoder_left;
