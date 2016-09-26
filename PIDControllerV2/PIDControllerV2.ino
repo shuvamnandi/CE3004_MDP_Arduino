@@ -495,6 +495,7 @@ void align_distance(){
 
 }
 
+<<<<<<< HEAD
 // correct the angle of the robot
 
 void align_angle(){
@@ -526,3 +527,7 @@ void align_angle(){
     align_distance();
   }
 }
+=======
+// }
+
+>>>>>>> Initial commit to my branch
