@@ -62,8 +62,8 @@ void loop() {
   // rotate_right(180);
   int right_sensor = sensor_CR.distance();
   int left_sensor = sensor_CL.distance();
-  Serial.println ("center right sensor distance");
-  Serial.println (right_sensor);
+  Serial.println("center right sensor distance");
+  Serial.println(right_sensor);
 }
 
 /////////////////////////////////////////////////////////////////////////
