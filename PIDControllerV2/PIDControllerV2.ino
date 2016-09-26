@@ -1,38 +1,33 @@
 #include <PinChangeInt.h>
 #include <SharpIR.h>
 #include "DualVNH5019MotorShield.h"
-DualVNH5019MotorShield md;
-
 
 /////////////////////////////////////////////////////////////////////////
-///////////////////////////////////HARDWARE SETUP////////////////////////
+///////////////////////////////HARDWARE SETUP////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
 // SETUP MOTOR PINS 
-// motor encoders are taking the DIGITAL pins
+// Motor encoders are taking the DIGITAL pins
 #define LEFT_MOTOR_PIN 3
 #define RIGHT_MOTOR_PIN 5
 
-// DECLARE VARIABLES 
+// DECLARE VARIABLES
+DualVNH5019MotorShield md;
 volatile float encoder_left = 0;
 volatile float encoder_right = 0;
 double error = 0.0, integralError = 0.0, target_tick = 0.0;
 float left_straight_speed, right_straight_speed;
 float left_rotate_speed, right_rotate_speed;
 float left_brake_speed, right_brake_speed;
-
-
-
+int angle;
 
 // SETUP SENSORS PINS 
 // sensors are taking the ANALOG pins
-
 #define sensor_L_pin 1
 #define sensor_R_pin 2
-#define sensor_CL_pin 3
-#define sensor_C_pin 4
+#define sensor_C_pin 3
+#define sensor_CL_pin 4
 #define sensor_CR_pin 5
-
 
 // 1080 => short range senor GP2Y0A21Y
 // 20150 => long range sensor GP2Y0A02Y
@@ -42,11 +37,8 @@ SharpIR sensor_C (sensor_C_pin, 20150);
 SharpIR sensor_CL (sensor_CL_pin, 1080);  //center left
 SharpIR sensor_CR (sensor_CR_pin, 1080);  //center right 
 
-
-int angle;
-
 /////////////////////////////////////////////////////////////////////////
-///////////////////////////////////SETUP/////////////////////////////////
+/////////////////////////////////SETUP///////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
 void setup() {
@@ -235,49 +227,6 @@ void move_backward_ramp_up (int distance_cm) {
 
 // Rotation
 
-void rotate_right(int angle) {
-  encoder_right = 0;
-  encoder_left = 0;
-  double compensation = 0;
-  error = 0;
-  integralError = 0;
-  if (angle <= 5) target_tick = angle * 5.2;
-  else if (angle <= 10) target_tick = angle * 6.3;
-  else if (angle <= 15) target_tick = angle * 6.4;
-  else if (angle <= 30) target_tick = angle * 7.7; //7.72
-  else if (angle <= 45) target_tick = angle * 8.01; //8.635
-  else if (angle <= 60) target_tick = angle * 8.3;
-  else if (angle <= 90) target_tick = angle * 8.47; //8.643
-  else if (angle <= 180) target_tick = angle * 9.75;    //tune 180
-  else if (angle <= 360) target_tick = angle * 9.37;
-  else if (angle <= 720) target_tick = angle * 9.15;
-  else if (angle <= 900) target_tick = angle * 9.16;
-  else if (angle <= 1080) target_tick = angle * 9.06;
-  else target_tick = angle * 9.0;
-
-  while (encoder_right < target_tick*0.2 )
-  {
-    compensation = tune_pid();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
-  }
-
-  while (encoder_right < target_tick*0.7) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
-  }
-  
-  while (encoder_right < target_tick) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
-  }
-  
-  md.setBrakes(left_brake_speed,right_brake_speed); 
-  delay(80);
-  md.setBrakes(0, 0);
-}
-
 void rotate_left(int angle) {
   encoder_right = 0;
   encoder_left = 0;
@@ -322,11 +271,55 @@ void rotate_left(int angle) {
   md.setBrakes(0, 0);
 }
 
+void rotate_right(int angle) {
+  encoder_right = 0;
+  encoder_left = 0;
+  double compensation = 0;
+  error = 0;
+  integralError = 0;
+  if (angle <= 5) target_tick = angle * 5.2;
+  else if (angle <= 10) target_tick = angle * 6.3;
+  else if (angle <= 15) target_tick = angle * 6.4;
+  else if (angle <= 30) target_tick = angle * 7.7; //7.72
+  else if (angle <= 45) target_tick = angle * 8.01; //8.635
+  else if (angle <= 60) target_tick = angle * 8.3;
+  else if (angle <= 90) target_tick = angle * 8.47; //8.643
+  else if (angle <= 180) target_tick = angle * 9.75;    //tune 180
+  else if (angle <= 360) target_tick = angle * 9.37;
+  else if (angle <= 720) target_tick = angle * 9.15;
+  else if (angle <= 900) target_tick = angle * 9.16;
+  else if (angle <= 1080) target_tick = angle * 9.06;
+  else target_tick = angle * 9.0;
+
+  while (encoder_right < target_tick*0.2 )
+  {
+    compensation = tune_pid();
+    md.setSpeeds(150 + compensation, -(150 - compensation));
+  }
+
+  while (encoder_right < target_tick*0.7) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
+  }
+  
+  while (encoder_right < target_tick) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(150 + compensation, -(150 - compensation));
+  }
+  
+  md.setBrakes(left_brake_speed,right_brake_speed); 
+  delay(80);
+  md.setBrakes(0, 0);
+}
+
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////PID TUNING////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-// that will be used to tune with PID then translate into the distance
+// interrupts to be called for counting the number of ticks from encoder output 
+// when motor moves, used in tuning the PID, then translated into distance
 void left_encoder_rising () {
   encoder_left++;
 }
@@ -334,7 +327,6 @@ void left_encoder_rising () {
 void right_encoder_rising () {
   encoder_right++;
 }
-
 
 double tune_pid () {
   double compensation, pervious_encoder_right;
@@ -358,9 +350,6 @@ double tune_pid () {
   pervious_encoder_right = encoder_right;
   return compensation;
 }
-
-
-
 
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////ROBOT SENSOR CONTROL//////////////////////////
@@ -389,6 +378,4 @@ double tune_pid () {
 // void align_angle () {
 
 // }
-
-
 
