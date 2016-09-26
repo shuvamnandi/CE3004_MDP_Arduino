@@ -1,10 +1,35 @@
 #include <PinChangeInt.h>
 #include "DualVNH5019MotorShield.h"
+DualVNH5019MotorShield md;
+
+
+/////////////////////////////////////////////////////////////////////////
+///////////////////////////////////HARDWARE SETUP////////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+// SETUP MOTOR PINS 
+// motor encoders are taking the DIGITAL pins
 #define LEFT_MOTOR_PIN 3
 #define RIGHT_MOTOR_PIN 5
 
-DualVNH5019MotorShield md;
 
+#define sensor_L_pin 1
+#define sensor_R_pin 2
+#define sensor_C_pin 3
+#define sensor_CL_pin 4
+#define sensor_CR_pin 5
+
+// SETUP SENSORS PINS 
+// 1080 => short range senor GP2Y0A21Y
+// 20150 => long range sensor GP2Y0A02Y
+// sensors are taking the ANALOG pins
+SharpIR sensor_L (sensor_L_pin, 1080);
+SharpIR sensor_R (sensor_R_pin, 1080);
+SharpIR sensor_C (sensor_C_pin, 20150);
+SharpIR sensor_CL (sensor_CL_pin, 1080);  //center left
+SharpIR sensor_CR (sensor_CR_pin, 1080);  //center right 
+
+// DECLARE VARIABLES 
 volatile float encoder_left = 0;
 volatile float encoder_right = 0;
 double error = 0.0, integralError = 0.0, target_tick = 0.0;
@@ -36,6 +61,8 @@ void setup() {
 void loop() {
   move_forward_ramp_up(100);
   rotate_right(180);
+  int right_sensor = sensor_R.distance();
+  int left_sensor = sensor_L.distance();
 }
 
 /////////////////////////////////////////////////////////////////////////
