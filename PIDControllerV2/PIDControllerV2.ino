@@ -1,8 +1,7 @@
-#include <RunningMedian.h>
-#include <PinChangeInt.h>
-#include <SharpIR.h>
 #include "DualVNH5019MotorShield.h"
-
+#include <SharpIR.h>
+#include <PinChangeInt.h>
+#include <RunningMedian.h>
 
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////HARDWARE SETUP////////////////////////////
@@ -32,14 +31,14 @@ int angle;
 #define sensor_CL_pin 4
 #define sensor_CR_pin 5
 
-// 1080 => short range senor GP2Y0A21Y
-// 20150 => long range sensor GP2Y0A02Y
-SharpIR sensor_L (sensor_L_pin, 1080);
-SharpIR sensor_R (sensor_R_pin, 1080);
-SharpIR sensor_C_TOP (sensor_CT_pin, 20150);
-SharpIR sensor_C_BOT (sensor_CB_pin, 20150);
-SharpIR sensor_C_LEFT (sensor_CL_pin, 1080);  //center left
-SharpIR sensor_C_RIGHT (sensor_CR_pin, 1080);  //center right 
+// 1080 => short range senor GP2Y0A21YK
+// 20150 => long range sensor GP2Y0A02YK
+SharpIR sensor_L (sensor_L_pin, 1080); // left, short range sensor
+SharpIR sensor_R (sensor_R_pin, 1080); // right, short range sensor
+SharpIR sensor_C_TOP (sensor_CT_pin, 20150); // center top, long range sensor
+SharpIR sensor_C_BOT (sensor_CB_pin, 20150); // center bottom, long range sensor
+SharpIR sensor_C_LEFT (sensor_CL_pin, 1080);  // center left, short range sensor
+SharpIR sensor_C_RIGHT (sensor_CR_pin, 1080);  // center right, short range sensor
 
 /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////SETUP///////////////////////////////////
