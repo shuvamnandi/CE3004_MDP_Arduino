@@ -237,7 +237,7 @@ void rotate_right(int angle) {
     md.setSpeeds(150 + compensation, -(150 - compensation));
   }
   
-  md.setBrakes(right_break_speed,left_break_speed); 
+  md.setBrakes(right_brake_speed,left_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -281,7 +281,7 @@ void rotate_left(int angle) {
     md.setSpeeds(-(150 + compensation), (150 - compensation));
   }
   
-  md.setBrakes(right_break_speed,left_break_speed); 
+  md.setBrakes(right_brake_speed,left_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -290,9 +290,6 @@ void rotate_left(int angle) {
 ///////////////////////////////PID TUNING////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////
-///////////////////////////////PID TUNING////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
 
 double tunePID () {
   double compensation, pervious_encoder_right;
