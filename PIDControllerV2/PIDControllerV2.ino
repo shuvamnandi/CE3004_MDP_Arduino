@@ -1,6 +1,8 @@
+#include <RunningMedian.h>
 #include <PinChangeInt.h>
 #include <SharpIR.h>
 #include "DualVNH5019MotorShield.h"
+
 
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////HARDWARE SETUP////////////////////////////
@@ -23,9 +25,10 @@ int angle;
 
 // SETUP SENSORS PINS 
 // sensors are taking the ANALOG pins
-#define sensor_L_pin 1
-#define sensor_R_pin 2
-#define sensor_C_pin 3
+#define sensor_L_pin 0
+#define sensor_R_pin 1
+#define sensor_CT_pin 2
+#define sensor_CB_pin 3
 #define sensor_CL_pin 4
 #define sensor_CR_pin 5
 
@@ -33,9 +36,10 @@ int angle;
 // 20150 => long range sensor GP2Y0A02Y
 SharpIR sensor_L (sensor_L_pin, 1080);
 SharpIR sensor_R (sensor_R_pin, 1080);
-SharpIR sensor_C (sensor_C_pin, 20150);
-SharpIR sensor_CL (sensor_CL_pin, 1080);  //center left
-SharpIR sensor_CR (sensor_CR_pin, 1080);  //center right 
+SharpIR sensor_C_TOP (sensor_CT_pin, 20150);
+SharpIR sensor_C_BOT (sensor_CB_pin, 20150);
+SharpIR sensor_C_LEFT (sensor_CL_pin, 1080);  //center left
+SharpIR sensor_C_RIGHT (sensor_CR_pin, 1080);  //center right 
 
 /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////SETUP///////////////////////////////////
@@ -60,10 +64,17 @@ void setup() {
 void loop() {
   // move_forward_ramp_up(100);
   // rotate_right(180);
-  int right_sensor = sensor_CR.distance();
-  int left_sensor = sensor_CL.distance();
-  Serial.println ("center right sensor distance");
-  Serial.println (right_sensor);
+  // int right_sensor = sensor_CR.distance();
+  // int left_sensor = sensor_CL.distance();
+  Serial.print("median distance from left=");
+  Serial.println (get_median_distance (sensor_C_LEFT));
+  Serial.print("median Distance from right=");
+  Serial.println (get_median_distance (sensor_C_RIGHT));
+  Serial.print("median Distance from center low=");
+  Serial.println (get_median_distance (sensor_C_BOT));  
+  Serial.print("median Distance from center high=");
+  Serial.println (get_median_distance (sensor_C_TOP));  
+
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -358,27 +369,34 @@ double tune_pid () {
 ///////////////////////////ROBOT SENSOR CONTROL//////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-// takes a meidan of the distance for accurate reading 
-// void get_distance (SharpIR sensor) {
-
-// }
-
-// void get_median_distance (sharpIR sensor) {
-
-// }
+//takes a median of the distance for accurate reading 
 
 
+float get_distance (SharpIR sensor) {
+ return (sensor.distance());
+}
 
-// // align the distance between the sensors 
-// void align_distance (){
-//   while (1) {
+float get_median_distance (SharpIR sensor) {
+RunningMedian buffer = RunningMedian(100);
+for (int i = 0; i < 100; i ++)
+  {
+    buffer.add(get_distance(sensor)); 
+  }
+  return buffer.getMedian();
+}
 
 
-//   }
 
-// }
-// // correct the angle of the robot
-// void align_angle () {
+// align the distance between the sensors 
+void align_distance (){
+  while (1) {
 
-// }
+
+  }
+
+}
+// correct the angle of the robot
+void align_angle () {
+
+}
 
