@@ -1,4 +1,5 @@
 #include <PinChangeInt.h>
+#include <SharpIR.h>
 #include "DualVNH5019MotorShield.h"
 DualVNH5019MotorShield md;
 
@@ -12,23 +13,6 @@ DualVNH5019MotorShield md;
 #define LEFT_MOTOR_PIN 3
 #define RIGHT_MOTOR_PIN 5
 
-
-#define sensor_L_pin 1
-#define sensor_R_pin 2
-#define sensor_C_pin 3
-#define sensor_CL_pin 4
-#define sensor_CR_pin 5
-
-// SETUP SENSORS PINS 
-// 1080 => short range senor GP2Y0A21Y
-// 20150 => long range sensor GP2Y0A02Y
-// sensors are taking the ANALOG pins
-SharpIR sensor_L (sensor_L_pin, 1080);
-SharpIR sensor_R (sensor_R_pin, 1080);
-SharpIR sensor_C (sensor_C_pin, 20150);
-SharpIR sensor_CL (sensor_CL_pin, 1080);  //center left
-SharpIR sensor_CR (sensor_CR_pin, 1080);  //center right 
-
 // DECLARE VARIABLES 
 volatile float encoder_left = 0;
 volatile float encoder_right = 0;
@@ -36,6 +20,29 @@ double error = 0.0, integralError = 0.0, target_tick = 0.0;
 float left_straight_speed, right_straight_speed;
 float left_rotate_speed, right_rotate_speed;
 float left_brake_speed, right_brake_speed;
+
+
+
+
+// SETUP SENSORS PINS 
+// sensors are taking the ANALOG pins
+
+#define sensor_L_pin 1
+#define sensor_R_pin 2
+#define sensor_CL_pin 3
+#define sensor_C_pin 4
+#define sensor_CR_pin 5
+
+
+// 1080 => short range senor GP2Y0A21Y
+// 20150 => long range sensor GP2Y0A02Y
+SharpIR sensor_L (sensor_L_pin, 1080);
+SharpIR sensor_R (sensor_R_pin, 1080);
+SharpIR sensor_C (sensor_C_pin, 20150);
+SharpIR sensor_CL (sensor_CL_pin, 1080);  //center left
+SharpIR sensor_CR (sensor_CR_pin, 1080);  //center right 
+
+
 int angle;
 
 /////////////////////////////////////////////////////////////////////////
@@ -59,10 +66,12 @@ void setup() {
 }
 
 void loop() {
-  move_forward_ramp_up(100);
-  rotate_right(180);
-  int right_sensor = sensor_R.distance();
-  int left_sensor = sensor_L.distance();
+  // move_forward_ramp_up(100);
+  // rotate_right(180);
+  int right_sensor = sensor_CR.distance();
+  int left_sensor = sensor_CL.distance();
+  Serial.println ("center right sensor distance");
+  Serial.println (right_sensor);
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -103,37 +112,37 @@ void move_forward_ramp_up (int distance_cm) {
   
   while (encoder_right < 100)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(100 + compensation, 100 - compensation);
   }
   
   while (encoder_right < 200)
   {
-    compensation = tunePID(); 
+    compensation = tune_pid(); 
     md.setSpeeds(200 + compensation, 200 - compensation);
   }
 
   while (encoder_right < 250)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(300 + compensation, 300 - compensation);
   }
 
   while (encoder_right < target_tick - 200)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(left_straight_speed + compensation, right_straight_speed - compensation);
   }
   
   while (encoder_right < target_tick - 100)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(200 + compensation, 200 - compensation);
   }
 
   while (encoder_right < target_tick)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(100 + compensation, 100 - compensation);
   }
   Serial.print("encoder_left: ");
@@ -178,37 +187,37 @@ void move_backward_ramp_up (int distance_cm) {
   
   while (encoder_right < 100)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(-(100 + compensation), -(100 - compensation));
   }
   
   while (encoder_right < 200)
   {
-    compensation = tunePID(); 
+    compensation = tune_pid(); 
     md.setSpeeds(-(200 + compensation), -(200 - compensation));
   }
 
   while (encoder_right < 250)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(-(300 + compensation), -(300 - compensation));
   }
 
   while (encoder_right < target_tick - 200)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(-(left_straight_speed + compensation), -(right_straight_speed - compensation));
   }
   
   while (encoder_right < target_tick - 100)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(-(200 + compensation), -(200 - compensation));
   }
 
   while (encoder_right < target_tick)
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(-(100 + compensation), -(100 - compensation));
   }
   Serial.print("encoder_left: ");
@@ -248,23 +257,23 @@ void rotate_right(int angle) {
 
   while (encoder_right < target_tick*0.2 )
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(150 + compensation, -(150 - compensation));
   }
 
   while (encoder_right < target_tick*0.7) 
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
   }
   
   while (encoder_right < target_tick) 
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(150 + compensation, -(150 - compensation));
   }
   
-  md.setBrakes(right_brake_speed,left_brake_speed); 
+  md.setBrakes(left_brake_speed,right_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -292,23 +301,23 @@ void rotate_left(int angle) {
 // ramping
   while (encoder_right < target_tick* 0.2 )
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(- (150 + compensation), 150 - compensation);
   }
 
   while (encoder_right < target_tick*0.7) 
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(-(left_rotate_speed + compensation), (right_rotate_speed - compensation));
   }
 // achieveing max speed  
   while (encoder_right < target_tick) 
   {
-    compensation = tunePID();
+    compensation = tune_pid();
     md.setSpeeds(-(150 + compensation), (150 - compensation));
   }
   
-  md.setBrakes(right_brake_speed,left_brake_speed); 
+  md.setBrakes(left_brake_speed,right_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -317,8 +326,17 @@ void rotate_left(int angle) {
 ///////////////////////////////PID TUNING////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
+// that will be used to tune with PID then translate into the distance
+void left_encoder_rising () {
+  encoder_left++;
+}
 
-double tunePID () {
+void right_encoder_rising () {
+  encoder_right++;
+}
+
+
+double tune_pid () {
   double compensation, pervious_encoder_right;
   //double Kp, Ki, Kd, p, i, d;
    double Kp, Ki, Kd, p, i;
@@ -337,6 +355,40 @@ double tunePID () {
   //d = (pervious_encoder_right - encoder_right) * Kd;
   //compensation = p + i + d;
   compensation = p + i;
-  previous_encoder_right = encoder_right;
+  pervious_encoder_right = encoder_right;
   return compensation;
 }
+
+
+
+
+/////////////////////////////////////////////////////////////////////////
+///////////////////////////ROBOT SENSOR CONTROL//////////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+// takes a meidan of the distance for accurate reading 
+// void get_distance (SharpIR sensor) {
+
+// }
+
+// void get_median_distance (sharpIR sensor) {
+
+// }
+
+
+
+// // align the distance between the sensors 
+// void align_distance (){
+//   while (1) {
+
+
+//   }
+
+// }
+// // correct the angle of the robot
+// void align_angle () {
+
+// }
+
+
+
