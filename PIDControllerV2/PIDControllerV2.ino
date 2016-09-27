@@ -61,6 +61,7 @@ void setup() {
 }
 
 void loop() {
+<<<<<<< HEAD
 //  move_forward_ramp(100);
 //  rotate_left_ramp(90);
   rotate_left(90);
@@ -78,6 +79,14 @@ void loop() {
 //  while(1){
 //  }
   delay(500);
+=======
+  // move_forward_ramp_up(100);
+  // rotate_right(180);
+  int right_sensor = sensor_CR.distance();
+  int left_sensor = sensor_CL.distance();
+  Serial.println("center right sensor distance");
+  Serial.println(right_sensor);
+>>>>>>> f609b6a987efe81da72b9c6c22765500cf02801d
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -458,9 +467,13 @@ void align_distance (){
 
   }
 
+<<<<<<< HEAD
 }
 // correct the angle of the robot
 void align_angle () {
 
 }
+=======
+// }
+>>>>>>> f609b6a987efe81da72b9c6c22765500cf02801d
 
