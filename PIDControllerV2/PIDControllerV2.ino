@@ -31,6 +31,8 @@ int angle;
 #define sensor_CL_pin 4
 #define sensor_CR_pin 5
 
+#define dis_from_wall 12
+
 // 1080 => short range senor GP2Y0A21YK
 // 20150 => long range sensor GP2Y0A02YK
 SharpIR sensor_L (sensor_L_pin, 1080); // left, short range sensor
@@ -442,30 +444,85 @@ double tune_pid () {
 ///////////////////////////ROBOT SENSOR CONTROL//////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-// Takes a median of the distance for accurate reading 
+//Takes a median of the distance for accurate reading 
 float get_distance (SharpIR sensor) {
  return (sensor.distance());
 }
 
 float get_median_distance (SharpIR sensor) {
 RunningMedian buffer = RunningMedian(100);
-for (int i = 0; i < 100; i ++)
+for (int i = 0; i < 10; i ++)
   {
+    delay(20);
     buffer.add(get_distance(sensor)); 
   }
   return buffer.getMedian();
 }
 
+void close_avoidance()
+{
+  int first_right_distance = get_median_distance(sensor_C_RIGHT);
+  int first_left_distance = get_median_distance(sensor_C_LEFT);
+  if ( (first_left_distance > 14) || (first_right_distance > 14) ) move_backward_ramp(2);
+}
+
+
 // align the distance between the sensors 
-void align_distance (){
-  while (1) {
 
+void align_distance(){
+  while(1){
+    int right_distance = get_median_distance(sensor_C_RIGHT);
+    if (right_distance > dis_from_wall) move_forward_ramp(0.8);//md.setSpeeds(80,80);
+    else if (right_distance < dis_from_wall) move_backward_ramp(0.8);
+    else break;
+  }
+  md.setBrakes(left_brake_speed,right_brake_speed);
 
+  while(1){
+    int left_distance = get_median_distance(sensor_C_LEFT);
+    if (left_distance > dis_from_wall) move_forward_ramp(0.8);//md.setSpeeds(80,80);
+    else if (left_distance < dis_from_wall) move_backward_ramp(0.8);
+    else break;
+  }
+  md.setBrakes(left_brake_speed,right_brake_speed);
+ 
+  int right_distance = get_median_distance(sensor_C_RIGHT);
+  int left_distance = get_median_distance(sensor_C_LEFT);
+  int error = left_distance - right_distance; 
+  if (error >= 1 || error <= -1) {
+  align_angle();
   }
 
 }
+
 // correct the angle of the robot
-void align_angle () {
 
+void align_angle(){
+  int left_distance, right_distance;
+  int first_right_distance, first_left_distance;
+  first_right_distance = get_median_distance(sensor_C_RIGHT);
+  first_left_distance = get_median_distance(sensor_C_LEFT);
+  while(1)
+  {  
+    left_distance = get_median_distance(sensor_C_LEFT);
+    right_distance = get_median_distance(sensor_C_RIGHT);
+    int error = left_distance - right_distance;
+
+    if (error >= 1){
+      rotate_right(0.5);
+    }
+    else if (error <= -1){
+      rotate_left(0.5);
+    }
+    else break;
+  }
+
+  if (first_left_distance < first_right_distance){
+    rotate_left(2);
+  }
+  
+  right_distance = get_median_distance(sensor_C_RIGHT);
+  if (right_distance > dis_from_wall || right_distance < dis_from_wall) {
+    align_distance();
+  }
 }
-
