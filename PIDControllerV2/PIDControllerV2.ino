@@ -61,32 +61,26 @@ void setup() {
 }
 
 void loop() {
-<<<<<<< HEAD
 //  move_forward_ramp(100);
 //  rotate_left_ramp(90);
-  rotate_left(90);
+//  rotate_left(90);
 //  move_forward_ramp(100);
-//  int right_sensor = sensor_C_RIGHT.distance();
-//  int left_sensor = sensor_C_LEFT.distance();
-//  Serial.print("median distance from left=");
-//  Serial.println (get_median_distance (sensor_C_LEFT));
-//  Serial.print("median Distance from right=");
-//  Serial.println (get_median_distance (sensor_C_RIGHT));
-//  Serial.print("median Distance from center low=");
-//  Serial.println (get_median_distance (sensor_C_BOT));  
-//  Serial.print("median Distance from center high=");
-//  Serial.println (get_median_distance (sensor_C_TOP));  
+  delay(20);
+  Serial.print("median distance from left=");
+  Serial.println (get_median_distance (sensor_L));
+  Serial.print("median Distance from right=");
+  Serial.println (get_median_distance (sensor_R));
+  Serial.print("median distance from center left=");
+  Serial.println (get_median_distance (sensor_C_LEFT));
+  Serial.print("median Distance from center right=");
+  Serial.println (get_median_distance (sensor_C_RIGHT));
+  Serial.print("median Distance from center low=");
+  Serial.println (get_median_distance (sensor_C_BOT));  
+  Serial.print("median Distance from center high=");
+  Serial.println (get_median_distance (sensor_C_TOP));  
 //  while(1){
 //  }
   delay(500);
-=======
-  // move_forward_ramp_up(100);
-  // rotate_right(180);
-  int right_sensor = sensor_CR.distance();
-  int left_sensor = sensor_CL.distance();
-  Serial.println("center right sensor distance");
-  Serial.println(right_sensor);
->>>>>>> f609b6a987efe81da72b9c6c22765500cf02801d
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -94,7 +88,7 @@ void loop() {
 /////////////////////////////////////////////////////////////////////////
 
 // Straight line movement
-
+// Accelerating and decelerating slowly
 void move_forward_ramp (int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
@@ -467,13 +461,32 @@ void align_distance (){
 
   }
 
-<<<<<<< HEAD
 }
-// correct the angle of the robot
+// correct the angle of the robot, so that left and right sides are at equal distances from an obstacle
 void align_angle () {
+//  int left_distance, right_distance;
+//  int initial_left_distance, initial_right_distance;
+//  initial_left_distance = get_median_distance(sensor_C_LEFT);
+//  initial_right_distance = get_median_distance(sensor_C_RIGHT);
+//  while(1){
+//    left_distance = get_median_distance(sensor_C_LEFT);
+//    right_distance = get_median_distance(sensor_C_RIGHT);
+//    int error = right_distance - left_distance;
+//    if (error >= 1 ) {
+//      rotate_left(0.5);
+//    }
+//    else if (error <= -1 ) {
+//      rotate_right(0.5);
+//    }
+//    else 
+//      break;
+//  }
+//
+//  if (initial_right_distance - initial_left_distance) {
+//    rotate_right(2);
+//  }
+  
+  
 
 }
-=======
-// }
->>>>>>> f609b6a987efe81da72b9c6c22765500cf02801d
 
