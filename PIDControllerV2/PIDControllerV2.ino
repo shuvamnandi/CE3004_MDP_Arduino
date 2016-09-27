@@ -461,66 +461,70 @@ for (int i = 0; i < 10; i ++)
 
 void close_avoidance()
 {
-  int first_right_distance = get_median_distance(sensor_C_RIGHT);
-  int first_left_distance = get_median_distance(sensor_C_LEFT);
-  if ( (first_left_distance > 14) || (first_right_distance > 14) ) move_backward_ramp(2);
+  int initial_right_distance = get_median_distance(sensor_C_RIGHT);
+  int initial_left_distance = get_median_distance(sensor_C_LEFT);
+  if ( (initial_left_distance > 14) || (initial_right_distance > 14) ) move_backward_ramp(2);
 }
 
 
-// align the distance between the sensors 
-
+// Align the distances of the left and right wheel to the arena grids
 void align_distance(){
-  while(1){
+  while(1) {
     int right_distance = get_median_distance(sensor_C_RIGHT);
-    if (right_distance > dis_from_wall) move_forward_ramp(0.8);//md.setSpeeds(80,80);
-    else if (right_distance < dis_from_wall) move_backward_ramp(0.8);
-    else break;
+    if (right_distance > dis_from_wall) {
+      move_forward_ramp(0.8); 
+      //md.setSpeeds(80,80);
+    }
+    else if (right_distance < dis_from_wall) {
+      move_backward_ramp(0.8);
+    }
+    else 
+      break;
   }
-  md.setBrakes(left_brake_speed,right_brake_speed);
+  md.setBrakes(left_brake_speed, right_brake_speed);
 
-  while(1){
+  while(1) {
     int left_distance = get_median_distance(sensor_C_LEFT);
-    if (left_distance > dis_from_wall) move_forward_ramp(0.8);//md.setSpeeds(80,80);
-    else if (left_distance < dis_from_wall) move_backward_ramp(0.8);
-    else break;
+    if (left_distance > dis_from_wall) {
+      move_forward_ramp(0.8);//md.setSpeeds(80,80);
+    }
+    else if (left_distance < dis_from_wall) {
+      move_backward_ramp(0.8);
+    }
+    else 
+      break;
   }
-  md.setBrakes(left_brake_speed,right_brake_speed);
- 
-  int right_distance = get_median_distance(sensor_C_RIGHT);
+  md.setBrakes(left_brake_speed, right_brake_speed);
   int left_distance = get_median_distance(sensor_C_LEFT);
+  int right_distance = get_median_distance(sensor_C_RIGHT);
   int error = left_distance - right_distance; 
   if (error >= 1 || error <= -1) {
-  align_angle();
+    align_angle();
   }
-
 }
 
-// correct the angle of the robot
-
+// Correct the angle of the robot such that left and right parts of the robot are at equal distances from an obstacle
 void align_angle(){
   int left_distance, right_distance;
-  int first_right_distance, first_left_distance;
-  first_right_distance = get_median_distance(sensor_C_RIGHT);
-  first_left_distance = get_median_distance(sensor_C_LEFT);
+  int initial_left_distance, initial_right_distance;
+  initial_left_distance = get_median_distance(sensor_C_LEFT);
+  initial_right_distance = get_median_distance(sensor_C_RIGHT);
   while(1)
   {  
     left_distance = get_median_distance(sensor_C_LEFT);
     right_distance = get_median_distance(sensor_C_RIGHT);
     int error = left_distance - right_distance;
-
-    if (error >= 1){
+    if (error >= 1) {
       rotate_right(0.5);
     }
-    else if (error <= -1){
+    else if (error <= -1) {
       rotate_left(0.5);
     }
     else break;
   }
-
-  if (first_left_distance < first_right_distance){
+  if (initial_left_distance < initial_right_distance){
     rotate_left(2);
   }
-  
   right_distance = get_median_distance(sensor_C_RIGHT);
   if (right_distance > dis_from_wall || right_distance < dis_from_wall) {
     align_distance();
