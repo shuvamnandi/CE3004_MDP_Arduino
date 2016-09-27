@@ -24,23 +24,26 @@ int angle;
 
 // SETUP SENSORS PINS 
 // sensors are taking the ANALOG pins
-#define sensor_L_pin 0
-#define sensor_R_pin 1
-#define sensor_CT_pin 2
-#define sensor_CB_pin 3
-#define sensor_CL_pin 4
-#define sensor_CR_pin 5
+#define SENSOR_LEFT_PIN 0
+#define SENSOR_RIGHT_PIN 1
+#define SENSOR_CT_PIN 2
+#define SENSOR_CB_PIN 3
+#define SENSOR_CL_PIN 4
+#define SENSOR_CR_PIN 5
+#define WALL_DISTANCE 12
 
-#define dis_from_wall 12
+#define FRONT_SHORT_OFFSET 2
+#define SIDE_SHORT_OFFSET 5
+//#define front_center_offset
 
 // 1080 => short range senor GP2Y0A21YK
 // 20150 => long range sensor GP2Y0A02YK
-SharpIR sensor_L (sensor_L_pin, 1080); // left, short range sensor
-SharpIR sensor_R (sensor_R_pin, 1080); // right, short range sensor
-SharpIR sensor_C_TOP (sensor_CT_pin, 20150); // center top, long range sensor
-SharpIR sensor_C_BOT (sensor_CB_pin, 20150); // center bottom, long range sensor
-SharpIR sensor_C_LEFT (sensor_CL_pin, 1080);  // center left, short range sensor
-SharpIR sensor_C_RIGHT (sensor_CR_pin, 1080);  // center right, short range sensor
+SharpIR SENSOR_LEFT (SENSOR_LEFT_PIN, 1080); // left, short range sensor
+SharpIR SENSOR_RIGHT (SENSOR_RIGHT_PIN, 1080); // right, short range sensor
+SharpIR SENSOR_C_TOP (SENSOR_CT_PIN, 20150); // center top, long range sensor
+SharpIR SENSOR_C_BOT (SENSOR_CB_PIN, 20150); // center bottom, long range sensor
+SharpIR SENSOR_C_LEFT (SENSOR_CL_PIN, 1080);  // center left, short range sensor
+SharpIR SENSOR_C_RIGHT (SENSOR_CR_PIN, 1080);  // center right, short range sensor
 
 /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////SETUP///////////////////////////////////
@@ -63,23 +66,24 @@ void setup() {
 }
 
 void loop() {
-
-//  move_forward_ramp(100);
-//  rotate_left_ramp(90);
-  rotate_left(90);
-//  move_forward_ramp(100);
-//  int right_sensor = sensor_C_RIGHT.distance();
-//  int left_sensor = sensor_C_LEFT.distance();
 //  Serial.print("median distance from left=");
-//  Serial.println (get_median_distance (sensor_C_LEFT));
+//  Serial.println (get_median_distance (SENSOR_LEFT));
+//  
 //  Serial.print("median Distance from right=");
-//  Serial.println (get_median_distance (sensor_C_RIGHT));
+//  Serial.println (get_median_distance (SENSOR_RIGHT));
 //  Serial.print("median Distance from center low=");
-//  Serial.println (get_median_distance (sensor_C_BOT));  
-//  Serial.print("median Distance from center high=");
-//  Serial.println (get_median_distance (sensor_C_TOP));  
+//  Serial.println (get_median_distance (SENSOR_C_BOT));  
+  // Serial.print("median Distance from center =");
+  // Serial.println (get_median_distance (SENSOR_C_TOP)); 
+//   
+//  Serial.print("median Distance from center right=");
+//  Serial.println (get_median_distance (SENSOR_C_RIGHT));  
+//  
+//  Serial.print("median Distance from center left=");
+//  Serial.println (get_median_distance (SENSOR_C_LEFT));
 //  while(1){
 //  }
+  align_distance();
   delay(500);
 }
 
@@ -451,7 +455,7 @@ float get_distance (SharpIR sensor) {
 
 float get_median_distance (SharpIR sensor) {
 RunningMedian buffer = RunningMedian(100);
-for (int i = 0; i < 10; i ++)
+for (int i = 0; i < 100; i ++)
   {
     delay(20);
     buffer.add(get_distance(sensor)); 
@@ -459,23 +463,31 @@ for (int i = 0; i < 10; i ++)
   return buffer.getMedian();
 }
 
-void close_avoidance()
+//bot calibration
+
+void bot_calibration()
 {
-  int initial_right_distance = get_median_distance(sensor_C_RIGHT);
-  int initial_left_distance = get_median_distance(sensor_C_LEFT);
-  if ( (initial_left_distance > 14) || (initial_right_distance > 14) ) move_backward_ramp(2);
+  close_avoidance();
+  align_angle();
+  move_forward_ramp(1.3);
 }
 
+void close_avoidance()
+{
+  int initial_right_distance = get_median_distance(SENSOR_C_RIGHT);
+  int initial_left_distance = get_median_distance(SENSOR_C_LEFT);
+  if ( (initial_left_distance > 14) || (initial_right_distance > 14) ) move_backward_ramp(2);
+}
 
 // Align the distances of the left and right wheel to the arena grids
 void align_distance(){
   while(1) {
-    int right_distance = get_median_distance(sensor_C_RIGHT);
-    if (right_distance > dis_from_wall) {
+    int right_distance = get_median_distance(SENSOR_C_RIGHT);
+    if (right_distance > WALL_DISTANCE) {
       move_forward_ramp(0.8); 
       //md.setSpeeds(80,80);
     }
-    else if (right_distance < dis_from_wall) {
+    else if (right_distance < WALL_DISTANCE) {
       move_backward_ramp(0.8);
     }
     else 
@@ -484,35 +496,37 @@ void align_distance(){
   md.setBrakes(left_brake_speed, right_brake_speed);
 
   while(1) {
-    int left_distance = get_median_distance(sensor_C_LEFT);
-    if (left_distance > dis_from_wall) {
+    int left_distance = get_median_distance(SENSOR_C_LEFT);
+    if (left_distance > WALL_DISTANCE) {
       move_forward_ramp(0.8);//md.setSpeeds(80,80);
     }
-    else if (left_distance < dis_from_wall) {
+    else if (left_distance < WALL_DISTANCE) {
       move_backward_ramp(0.8);
     }
     else 
       break;
   }
   md.setBrakes(left_brake_speed, right_brake_speed);
-  int left_distance = get_median_distance(sensor_C_LEFT);
-  int right_distance = get_median_distance(sensor_C_RIGHT);
+  int left_distance = get_median_distance(SENSOR_C_LEFT);
+  int right_distance = get_median_distance(SENSOR_C_RIGHT);
   int error = left_distance - right_distance; 
-  if (error >= 1 || error <= -1) {
-    align_angle();
-  }
+  // if (error >= 1 || error <= -1) {
+  //   align_angle();
+  // }
 }
+
+
 
 // Correct the angle of the robot such that left and right parts of the robot are at equal distances from an obstacle
 void align_angle(){
   int left_distance, right_distance;
   int initial_left_distance, initial_right_distance;
-  initial_left_distance = get_median_distance(sensor_C_LEFT);
-  initial_right_distance = get_median_distance(sensor_C_RIGHT);
+  initial_left_distance = get_median_distance(SENSOR_C_LEFT);
+  initial_right_distance = get_median_distance(SENSOR_C_RIGHT);
   while(1)
   {  
-    left_distance = get_median_distance(sensor_C_LEFT);
-    right_distance = get_median_distance(sensor_C_RIGHT);
+    left_distance = get_median_distance(SENSOR_C_LEFT);
+    right_distance = get_median_distance(SENSOR_C_RIGHT);
     int error = left_distance - right_distance;
     if (error >= 1) {
       rotate_right(0.5);
@@ -525,8 +539,8 @@ void align_angle(){
   if (initial_left_distance < initial_right_distance){
     rotate_left(2);
   }
-  right_distance = get_median_distance(sensor_C_RIGHT);
-  if (right_distance > dis_from_wall || right_distance < dis_from_wall) {
+  right_distance = get_median_distance(SENSOR_C_RIGHT);
+  if (right_distance > WALL_DISTANCE || right_distance < WALL_DISTANCE) {
     align_distance();
   }
 }
