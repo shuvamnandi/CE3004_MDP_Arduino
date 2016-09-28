@@ -33,7 +33,8 @@ int angle;
 #define WALL_DISTANCE 12
 
 #define FRONT_SHORT_OFFSET 2
-#define SIDE_SHORT_OFFSET 5
+#define SIDE_SHORT_OFFSET 7
+#define FRONT_LONG_OFFSET 1
 //#define front_center_offset
 
 // 1080 => short range senor GP2Y0A21YK
@@ -66,25 +67,10 @@ void setup() {
 }
 
 void loop() {
-//  Serial.print("median distance from left=");
-//  Serial.println (get_median_distance (SENSOR_LEFT));
-//  
-//  Serial.print("median Distance from right=");
-//  Serial.println (get_median_distance (SENSOR_RIGHT));
-//  Serial.print("median Distance from center low=");
-//  Serial.println (get_median_distance (SENSOR_C_BOT));  
-  // Serial.print("median Distance from center =");
-  // Serial.println (get_median_distance (SENSOR_C_TOP)); 
-//   
-//  Serial.print("median Distance from center right=");
-//  Serial.println (get_median_distance (SENSOR_C_RIGHT));  
-//  
-//  Serial.print("median Distance from center left=");
-//  Serial.println (get_median_distance (SENSOR_C_LEFT));
-//  while(1){
-//  }
-  align_distance();
-  delay(500);
+  // move_forward_ramp(10);
+  // Obstacle Avoidance
+  avoid_obstacle();
+  delay(1000);
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -99,7 +85,7 @@ void move_forward_ramp (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm <= 10) target_ticks = distance_cm * 58.3;
+  if (distance_cm <= 10) target_ticks = distance_cm * 58.15;
   else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
   else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
@@ -158,16 +144,151 @@ void move_forward_ramp (int distance_cm) {
     compensation = tune_pid();
     md.setSpeeds(100 + compensation, 100 - compensation);
   }
-  Serial.print("encoder_left: ");
-  Serial.println(encoder_left);
-  Serial.print("encoder_right: ");
-  Serial.println(encoder_right);
+  // Serial.print("encoder_left: ");
+  // Serial.println(encoder_left);
+  // Serial.print("encoder_right: ");
+  // Serial.println(encoder_right);
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(1000);
   md.setBrakes(0, 0);
 }
 
 void move_backward_ramp (int distance_cm) {
+  encoder_left = 0;
+  encoder_right = 0;
+  double compensation = 0;
+  error = 0.0;
+  integralError = 0.0;
+  //target_ticks = distance_cm * 58.5;
+  if (distance_cm<= 10) target_ticks = distance_cm * 58.3;
+  else if(distance_cm<=20) target_ticks = distance_cm * 58.3;
+  else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
+  else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
+  else if(distance_cm<=50) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=60) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=70) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=80) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=90) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=100) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=110) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=120) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=130) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=140) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=150) target_ticks = distance_cm * 72.5;
+  else if(distance_cm<=160) target_ticks = distance_cm * 72.5;
+  else if(distance_cm<=170) target_ticks = distance_cm * 72.5;
+  else target_ticks = distance_cm * 72.5;
+  
+  Serial.print("Distance_cm: ");
+  Serial.println(distance_cm);
+  Serial.print("target tick: ");
+  Serial.println(target_ticks);
+  
+  while (encoder_right < 100)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(100 + compensation), -(100 - compensation));
+  }
+  
+  while (encoder_right < 200)
+  {
+    compensation = tune_pid(); 
+    md.setSpeeds(-(200 + compensation), -(200 - compensation));
+  }
+
+  while (encoder_right < 250)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(300 + compensation), -(300 - compensation));
+  }
+
+  while (encoder_right < target_ticks - 200)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(left_straight_speed + compensation), -(right_straight_speed - compensation));
+  }
+  
+  while (encoder_right < target_ticks - 100)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(200 + compensation), -(200 - compensation));
+  }
+
+  while (encoder_right < target_ticks)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(100 + compensation), -(100 - compensation));
+  }
+  Serial.print("encoder_left: ");
+  Serial.println(encoder_left);
+  Serial.print("encoder_right: ");
+  Serial.println(encoder_right);
+  //Okay at HPL
+  //md.setBrakes(375, 400);
+
+  // at HWL2
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  delay(100);
+  //md.setBrakes(0, 0);
+}
+
+void move_forward (int distance_cm) {
+  encoder_left = 0;
+  encoder_right = 0;
+  double compensation = 0;
+  error = 0.0;
+  integralError = 0.0;
+  if (distance_cm <= 10) target_ticks = distance_cm * 58.3;
+  else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
+  else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
+  else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
+  else if(distance_cm<=50) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=60) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=70) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=80) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=90) target_ticks = distance_cm * 59.6; //calibration done
+  else if(distance_cm<=100) target_ticks = distance_cm * 60; //calibration redone on 26/9
+  else if(distance_cm<=110) target_ticks = distance_cm * 59.8; 
+  else if(distance_cm<=120) target_ticks = distance_cm * 60.3; //calibration redone on 26/9
+  else if(distance_cm<=130) target_ticks = distance_cm * 60.3; 
+  else if(distance_cm<=140) target_ticks = distance_cm * 60.5; 
+  else if(distance_cm<=150) target_ticks = distance_cm * 60.5; 
+  else if(distance_cm<=160) target_ticks = distance_cm * 60.5; //calibration redone on 26/9
+  else if(distance_cm<=170) target_ticks = distance_cm * 60.5; 
+  else target_ticks = distance_cm * 60.5;
+  
+  Serial.print("Distance_cm: ");
+  Serial.println(distance_cm);
+  Serial.print("target tick: ");
+  Serial.println(target_ticks);
+  
+  while (encoder_right < 200)
+  {
+    compensation = tune_pid(); 
+    md.setSpeeds(250 + compensation, 200 - compensation);
+  }
+
+  while (encoder_right < target_ticks - 200)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(left_straight_speed + compensation, right_straight_speed - compensation);
+  }
+  
+  while (encoder_right < target_ticks)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(100 + compensation, 100 - compensation);
+  }
+  // Serial.print("encoder_left: ");
+  // Serial.println(encoder_left);
+  // Serial.print("encoder_right: ");
+  // Serial.println(encoder_right);
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  delay(1000);
+  md.setBrakes(0, 0);
+}
+
+void move_backward (int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
   double compensation = 0;
@@ -430,7 +551,7 @@ double tune_pid () {
 //  Kd = 0.01;
   // Okay at HWL2
   // Kp = 54 for rotation
-  Kp = 54; // increase in case it is going left, decrease in case it is going right
+  Kp = 52; // increase in case it is going left, decrease in case it is going right
   Ki = 0.1;
   //Kd = 0.01;
   error = encoder_right - encoder_left;
@@ -449,15 +570,20 @@ double tune_pid () {
 /////////////////////////////////////////////////////////////////////////
 
 //Takes a median of the distance for accurate reading 
-float get_distance (SharpIR sensor) {
- return (sensor.distance());
+int get_distance (SharpIR sensor) {
+ int distance = sensor.distance();
+ // if any snesor reading is more than 70, return as 70. comment out this line for  actual implimenatation
+ if (distance > 70) {
+  return 70;
+ }
+ return (distance);
 }
 
-float get_median_distance (SharpIR sensor) {
+int get_median_distance (SharpIR sensor) {
 RunningMedian buffer = RunningMedian(100);
-for (int i = 0; i < 100; i ++)
-  {
-    delay(20);
+for (int i = 0; i < 25; i ++)
+ {
+//    delay(20);
     buffer.add(get_distance(sensor)); 
   }
   return buffer.getMedian();
@@ -542,5 +668,89 @@ void align_angle(){
   right_distance = get_median_distance(SENSOR_C_RIGHT);
   if (right_distance > WALL_DISTANCE || right_distance < WALL_DISTANCE) {
     align_distance();
+  }
+}
+
+void display_sensor_readings(){
+  Serial.println("Left Sensor distance: ");
+  Serial.println(get_median_distance(SENSOR_LEFT));
+  Serial.println("Right Sensor distance: ");
+  Serial.println(get_median_distance(SENSOR_RIGHT));
+  Serial.println("Center Left Sensor distance: ");
+  Serial.println(get_median_distance(SENSOR_C_LEFT));
+  Serial.println("Center Right Sensor distance: ");
+  Serial.println(get_median_distance(SENSOR_C_RIGHT));
+  Serial.println("Center Top Sensor distance: ");
+  Serial.println(get_median_distance(SENSOR_C_TOP));
+  Serial.println("Center Bottom Sensor distance: ");
+  Serial.println(get_median_distance(SENSOR_C_BOT));
+}
+
+// Checklist task: avoid one obstacle placed on a 150 cm path
+void avoid_obstacle(){
+  int distance_moved = 0;
+  int ditance_turned = 0;
+  int obst_height = 0;
+  int distance_turned = 0;
+  int moving_distance = 0;
+  Serial.println("Before Loop 1");
+  Serial.print("SENSOR_C_RIGHT: ");
+  Serial.println(get_median_distance(SENSOR_C_RIGHT));
+  Serial.print("SENSOR_C_LEFT: ");
+  Serial.println(get_median_distance(SENSOR_C_LEFT));
+  Serial.print("SENSOR_C_BOT: ");
+  Serial.println(get_median_distance(SENSOR_C_BOT));
+  // going straight before robot collides into the obstacle
+  Serial.println();
+  // As long as all the distance readings are more than 10 cm, move forward
+  // Once it is less than 10, obstacle is detected and call for obstacle avoidance
+  while ((get_median_distance(SENSOR_C_RIGHT)- SIDE_SHORT_OFFSET) > 10 && ((get_median_distance(SENSOR_C_LEFT)-SIDE_SHORT_OFFSET) > 10)) { 
+    // if ((get_median_distance(SENSOR_C_RIGHT)-SIDE_SHORT_OFFSET)>(get_median_distance(SENSOR_C_LEFT)-SIDE_SHORT_OFFSET))
+    // {
+    //   //move the shorter distance sensed by one of the sensors
+    //   moving_distance = get_median_distance(SENSOR_C_LEFT);
+    // }
+    // else 
+    // {
+    //   moving_distance = get_median_distance(SENSOR_C_RIGHT);
+    // }
+    move_forward_ramp(10);
+    distance_moved += 10 ;
+  }
+  // Encountered obstacle, turn for avoidance 
+  // First turn to the left
+  rotate_left(90);
+  // Move along the length of the obstance until the obstacle is detected cleared by the right sensor
+  while ((get_median_distance(SENSOR_RIGHT) - SIDE_SHORT_OFFSET) < 15) {
+    move_forward_ramp(10);
+    distance_turned += 10;
+  }
+  // Get one block clearance of the obstacle
+  move_forward_ramp(20);
+  // Second turn to the right
+  rotate_right(90);
+  // Get one block clearance of the obstacle
+  move_forward_ramp(20);
+  // Move along the breadth of the obstacle until the obstacle is detected cleared by the right sensor
+  while ((get_median_distance (SENSOR_RIGHT)-SIDE_SHORT_OFFSET)<15) {
+    Serial.println("Loop 3");
+    Serial.print("SENSOR_LEFT");
+    Serial.println(get_median_distance(SENSOR_LEFT));
+    move_forward_ramp(10);
+    obst_height +=10;
+  }
+  // Get one block clearance of the obstacle
+  move_forward_ramp(20);
+  // Third turn to the right
+  rotate_right(90);
+  // Moves back on the original line
+  move_forward_ramp(20);
+  // Fourth turn to get back to the original path and complete the rest of the straight lines 
+  rotate_left(90);
+  // 150 cm is the full length to be moved. Move straight through the rest of maze.
+  move_forward_ramp(150 - distance_moved - obst_height - 40);
+  while(1) 
+  {
+    // End of avoidance
   }
 }
