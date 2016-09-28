@@ -523,8 +523,6 @@ void rotate_right(int angle) {
   md.setBrakes(0, 0);
 }
 
-
-
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////PID TUNING////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
@@ -539,7 +537,6 @@ void left_encoder_rising () {
 void right_encoder_rising () {
   encoder_right++;
 }
-
 
 double tune_pid () {
   double compensation, previous_encoder_right;
@@ -640,8 +637,6 @@ void align_distance(){
   //   align_angle();
   // }
 }
-
-
 
 // Correct the angle of the robot such that left and right parts of the robot are at equal distances from an obstacle
 void align_angle(){
