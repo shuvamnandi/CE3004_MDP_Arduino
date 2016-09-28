@@ -18,7 +18,7 @@ volatile float encoder_left = 0;
 volatile float encoder_right = 0;
 double error = 0.0, integralError = 0.0, target_ticks = 0.0;
 float left_straight_speed, right_straight_speed;
-float left_rotate_speed, right_rotate_speed;
+float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotate_slow_speed;
 float left_brake_speed, right_brake_speed;
 int angle;
 
@@ -58,18 +58,20 @@ void setup() {
   // attach interrputs to the encoders output pins with PinChangeInt
   PCintPort::attachInterrupt(LEFT_MOTOR_PIN, left_encoder_rising, HIGH);
   PCintPort::attachInterrupt(RIGHT_MOTOR_PIN, right_encoder_rising, HIGH);
-  left_straight_speed = 400;    //250
-  right_straight_speed = 400;    //250
-  left_rotate_speed = 350;    //150
-  right_rotate_speed = 350;    //150
-  left_brake_speed = 385;    //250
+  left_straight_speed = 400; //250
+  right_straight_speed = 400; //250
+  left_rotate_speed = 350; //150
+  right_rotate_speed = 350; //150
+  left_rotate_slow_speed = 275;
+  right_rotate_slow_speed = 275;
+  left_brake_speed = 385; //250
   right_brake_speed = 400;
 }
 
 void loop() {
   // move_forward_ramp(10);
   // Obstacle Avoidance
-  avoid_obstacle();
+  rotate_left(90);
   delay(1000);
 }
 
@@ -391,14 +393,14 @@ void rotate_left_ramp(int angle) {
   else target_ticks = angle * 9.1;
   
   // ramping up
-  while (encoder_right < target_ticks* 0.2 )
+  while (encoder_right < target_ticks * 0.2 )
   {
     compensation = tune_pid();
     md.setSpeeds(- (150 + compensation), 150 - compensation);
   }
 
   // achieveing max speed  
-  while (encoder_right < target_ticks*0.7) 
+  while (encoder_right < target_ticks * 0.7) 
   {
     compensation = tune_pid();
     md.setSpeeds(-(left_rotate_speed + compensation), (right_rotate_speed - compensation));
@@ -436,14 +438,14 @@ void rotate_right_ramp(int angle) {
   else target_ticks = angle * 9.0;
 
   // ramping up
-  while (encoder_right < target_ticks*0.2 )
+  while (encoder_right < target_ticks * 0.2 )
   {
     compensation = tune_pid();
     md.setSpeeds(150 + compensation, -(150 - compensation));
   }
 
   // achieving max speed
-  while (encoder_right < target_ticks*0.7) 
+  while (encoder_right < target_ticks * 0.7) 
   {
     compensation = tune_pid();
     md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
@@ -474,7 +476,7 @@ void rotate_left(int angle) {
   else if (angle <= 30) target_ticks = angle * 7.7; //7.72
   else if (angle <= 45) target_ticks = angle * 8.01; //8.635
   else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.8; 
+  else if (angle <= 90) target_ticks = angle * 8.5; 
   else if (angle <= 180) target_ticks = angle * 9.1; 
   else if (angle <= 360) target_ticks = angle * 9.12; 
   else if (angle <= 540) target_ticks = angle * 9.11; 
@@ -486,7 +488,7 @@ void rotate_left(int angle) {
   while (encoder_right < target_ticks) 
   {
     compensation = tune_pid();
-    md.setSpeeds(-(left_rotate_speed + compensation), (right_rotate_speed - compensation));
+    md.setSpeeds(-(left_rotate_slow_speed + compensation), (right_rotate_slow_speed - compensation));
   }
   md.setBrakes(left_brake_speed, right_brake_speed); 
   delay(80);
