@@ -19,8 +19,10 @@ volatile float encoder_right = 0;
 double error = 0.0, integralError = 0.0, target_ticks = 0.0;
 float left_straight_speed, right_straight_speed;
 float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotate_slow_speed;
-float left_brake_speed, right_brake_speed;
+float left_brake_speed, right_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
 int angle;
+int left_distance = 0, center_left_distance = 0, center_bottom_distance = 0, center_right_distance = 0, right_distance = 0;
+char command;
 
 // SETUP SENSORS PINS 
 // sensors are taking the ANALOG pins
@@ -62,17 +64,32 @@ void setup() {
   right_straight_speed = 400; //250
   left_rotate_speed = 350; //150
   right_rotate_speed = 350; //150
-  left_rotate_slow_speed = 275;
-  right_rotate_slow_speed = 275;
+  left_rotate_slow_speed = 275; // for fastest path exploration
+  right_rotate_slow_speed = 275; // for fastest path exploration
   left_brake_speed = 385; //250
   right_brake_speed = 400;
+  left_rotate_brake_speed = 400;
+  right_rotate_brake_speed = 400;
 }
 
 void loop() {
-  // move_forward_ramp(10);
-  // Obstacle Avoidance
-  rotate_left(90);
+  move_forward_ramp(10);
   delay(1000);
+//  while(1){
+//    command = getRpiMessage();
+//    switch(command) {
+//      case 'F': move_forward_ramp(10);
+//                break;
+//      case 'L': rotate_left_ramp(90);
+//                break;
+//      case 'R': rotate_right_ramp(90);
+//                break;
+//      case 'B': move_backward_ramp(10);
+//                break;
+//    }
+//    read_sensor_readings();
+//    setRpiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+//  }
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -476,7 +493,7 @@ void rotate_left(int angle) {
   else if (angle <= 30) target_ticks = angle * 7.7; //7.72
   else if (angle <= 45) target_ticks = angle * 8.01; //8.635
   else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.5; 
+  else if (angle <= 90) target_ticks = angle * 8.522; // calibrated on 28/09
   else if (angle <= 180) target_ticks = angle * 9.1; 
   else if (angle <= 360) target_ticks = angle * 9.12; 
   else if (angle <= 540) target_ticks = angle * 9.11; 
@@ -490,7 +507,7 @@ void rotate_left(int angle) {
     compensation = tune_pid();
     md.setSpeeds(-(left_rotate_slow_speed + compensation), (right_rotate_slow_speed - compensation));
   }
-  md.setBrakes(left_brake_speed, right_brake_speed); 
+  md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -520,7 +537,7 @@ void rotate_right(int angle) {
     compensation = tune_pid();
     md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
   }  
-  md.setBrakes(left_brake_speed, right_brake_speed); 
+  md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -668,19 +685,24 @@ void align_angle(){
   }
 }
 
-void display_sensor_readings(){
+void read_sensor_readings(){
+  left_distance = get_median_distance(SENSOR_LEFT);
+  center_left_distance = get_median_distance(SENSOR_C_LEFT);
+  center_bottom_distance = get_median_distance(SENSOR_C_BOT);
+  center_right_distance = get_median_distance(SENSOR_C_RIGHT);
+  right_distance = get_median_distance(SENSOR_RIGHT);
   Serial.println("Left Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_LEFT));
+  Serial.println(left_distance);
   Serial.println("Right Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_RIGHT));
-  Serial.println("Center Left Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_LEFT));
-  Serial.println("Center Right Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_RIGHT));
-  Serial.println("Center Top Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_TOP));
+  Serial.println(right_distance);
   Serial.println("Center Bottom Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_BOT));
+  Serial.println(center_bottom_distance);
+  Serial.println("Center Left Sensor distance: ");
+  Serial.println(center_left_distance);
+  Serial.println("Center Right Sensor distance: ");
+  Serial.println(center_right_distance);
+//  Serial.println("Center Top Sensor distance: ");
+//  Serial.println(get_median_distance(SENSOR_C_TOP));
 }
 
 // Checklist task: avoid one obstacle placed on a 150 cm path
