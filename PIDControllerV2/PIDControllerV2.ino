@@ -773,3 +773,65 @@ void avoid_obstacle(){
     // End of avoidance
   }
 }
+
+// Checklist task: Useless curve without pivoting
+void avoid_obstacle_2() {
+  delay(50);
+  double comp;
+  RightSensorA1 = SENSOR_C_RIGHT.distance();
+  LeftSensorA0 = SENSOR_C_LEFT.distance();
+
+  // before it turns
+  while(RightSensorA1 >= 25 && LeftSensorA0 >= 25)
+  {
+    md.setM2Speed(200);
+    delay(2);
+    md.setM1Speed(200);
+    comp = tune_pid();
+    // md.setSpeeds(200, 200);
+    delay(50);
+    // move_forward_ramp(10);
+    RightSensorA1 = SENSOR_C_RIGHT.distance();
+    LeftSensorA0 = SENSOR_C_LEFT.distance();
+  }
+  //start of the first turn
+  md.setM2Speed(0);
+  delay(1500);
+  md.setM2Speed(200);
+  
+  md.setM1Speed(0);
+  delay(1500);
+  md.setM1Speed(200);
+  delay(1200);
+  md.setM1Speed(0);
+  delay(1500);
+   md.setM1Speed(200);
+   md.setM2Speed(0);
+  delay(1500);
+  
+
+  // while(RightSensorA1 >= 25 && LeftSensorA0 >= 25)
+  // {
+  //   md.setM2Speed(200);
+  //   delay(2);
+  //   md.setM1Speed(200);
+  //   comp = tune_pid();
+  //   // md.setSpeeds(200, 200);
+  //   delay(50);
+  //   // move_forward_ramp(10);
+  //   RightSensorA1 = SENSOR_C_RIGHT.distance();
+  //   LeftSensorA0 = SENSOR_C_LEFT.distance();
+  // }
+  md.setBrakes (400,400);
+  // md.setM2Speed(200);
+  // RightSensorA1 = SENSOR_C_RIGHT.distance();
+  // LeftSensorA0 = SENSOR_C_LEFT.distance();
+  // while(RightSensorA1 >= 30 && LeftSensorA0 >= 30)
+  // {
+  //   RightSensorA1 = SENSOR_C_RIGHT.distance();
+  //   LeftSensorA0 = SENSOR_C_LEFT.distance();
+  // }
+  // md.setBrakes(300, 300);
+  // delay(5000);
+
+}
