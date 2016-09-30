@@ -73,7 +73,15 @@ void setup() {
 }
 
 void loop() {
-  move_forward_ramp(10);
+  move_forward_ramp(100);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+//  read_sensor_readings();
+//  setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
   delay(1000);
 //  while(1){
 //    command = getRpiMessage();
@@ -88,8 +96,33 @@ void loop() {
 //                break;
 //    }
 //    read_sensor_readings();
-//    setRpiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+//    setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
 //  }
+  while(1){
+    
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////
+/////////////////////////RASPBERRY PI COMMUNICATION//////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+// Print to Serial for RPi to read messages
+
+void setRPiMessage(int left, int right, int center_bot, int center_left, int center_right){
+  Serial.print("A2PC|");
+  Serial.print(left);
+  Serial.print(":");
+  Serial.print(right);
+  Serial.print(":");
+  Serial.print(center_bot);
+  Serial.print(":");
+  Serial.print(center_left);
+  Serial.print(":");
+  Serial.print(center_right);
+  Serial.print("\0");
+  Serial.print("\n");
+  Serial.flush();
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -104,7 +137,7 @@ void move_forward_ramp (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm <= 10) target_ticks = distance_cm * 58.15;
+  if (distance_cm <= 10) target_ticks = distance_cm * 58.02;
   else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
   else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
@@ -751,7 +784,7 @@ void avoid_obstacle(){
   // Get one block clearance of the obstacle
   move_forward_ramp(20);
   // Move along the breadth of the obstacle until the obstacle is detected cleared by the right sensor
-  while ((get_median_distance (SENSOR_RIGHT)-SIDE_SHORT_OFFSET)<15) {
+  while ((get_median_distance(SENSOR_RIGHT)-SIDE_SHORT_OFFSET)<15) {
     Serial.println("Loop 3");
     Serial.print("SENSOR_LEFT");
     Serial.println(get_median_distance(SENSOR_LEFT));
@@ -778,11 +811,10 @@ void avoid_obstacle(){
 void avoid_obstacle_2() {
   delay(50);
   double comp;
-  RightSensorA1 = SENSOR_C_RIGHT.distance();
-  LeftSensorA0 = SENSOR_C_LEFT.distance();
-
+  int right_distance = get_median_distance(SENSOR_C_RIGHT);
+  int left_distance = get_median_distance(SENSOR_C_LEFT);
   // before it turns
-  while(RightSensorA1 >= 25 && LeftSensorA0 >= 25)
+  while(right_distance >= 25 && left_distance >= 25)
   {
     md.setM2Speed(200);
     delay(2);
@@ -791,47 +823,21 @@ void avoid_obstacle_2() {
     // md.setSpeeds(200, 200);
     delay(50);
     // move_forward_ramp(10);
-    RightSensorA1 = SENSOR_C_RIGHT.distance();
-    LeftSensorA0 = SENSOR_C_LEFT.distance();
+    right_distance = SENSOR_C_RIGHT.distance();
+    left_distance = SENSOR_C_LEFT.distance();
   }
   //start of the first turn
   md.setM2Speed(0);
   delay(1500);
   md.setM2Speed(200);
-  
   md.setM1Speed(0);
   delay(1500);
   md.setM1Speed(200);
   delay(1200);
   md.setM1Speed(0);
   delay(1500);
-   md.setM1Speed(200);
-   md.setM2Speed(0);
+  md.setM1Speed(200);
+  md.setM2Speed(0);
   delay(1500);
-  
-
-  // while(RightSensorA1 >= 25 && LeftSensorA0 >= 25)
-  // {
-  //   md.setM2Speed(200);
-  //   delay(2);
-  //   md.setM1Speed(200);
-  //   comp = tune_pid();
-  //   // md.setSpeeds(200, 200);
-  //   delay(50);
-  //   // move_forward_ramp(10);
-  //   RightSensorA1 = SENSOR_C_RIGHT.distance();
-  //   LeftSensorA0 = SENSOR_C_LEFT.distance();
-  // }
   md.setBrakes (400,400);
-  // md.setM2Speed(200);
-  // RightSensorA1 = SENSOR_C_RIGHT.distance();
-  // LeftSensorA0 = SENSOR_C_LEFT.distance();
-  // while(RightSensorA1 >= 30 && LeftSensorA0 >= 30)
-  // {
-  //   RightSensorA1 = SENSOR_C_RIGHT.distance();
-  //   LeftSensorA0 = SENSOR_C_LEFT.distance();
-  // }
-  // md.setBrakes(300, 300);
-  // delay(5000);
-
 }
