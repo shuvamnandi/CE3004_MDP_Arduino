@@ -19,8 +19,10 @@ volatile float encoder_right = 0;
 double error = 0.0, integralError = 0.0, target_ticks = 0.0;
 float left_straight_speed, right_straight_speed;
 float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotate_slow_speed;
-float left_brake_speed, right_brake_speed;
+float left_brake_speed, right_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
 int angle;
+int left_distance = 0, center_left_distance = 0, center_bottom_distance = 0, center_right_distance = 0, right_distance = 0;
+char command;
 
 // SETUP SENSORS PINS 
 // sensors are taking the ANALOG pins
@@ -62,17 +64,65 @@ void setup() {
   right_straight_speed = 400; //250
   left_rotate_speed = 350; //150
   right_rotate_speed = 350; //150
-  left_rotate_slow_speed = 275;
-  right_rotate_slow_speed = 275;
+  left_rotate_slow_speed = 275; // for fastest path exploration
+  right_rotate_slow_speed = 275; // for fastest path exploration
   left_brake_speed = 385; //250
   right_brake_speed = 400;
+  left_rotate_brake_speed = 400;
+  right_rotate_brake_speed = 400;
 }
 
 void loop() {
-  // move_forward_ramp(10);
-  // Obstacle Avoidance
-  rotate_left(90);
+  move_forward_ramp(100);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+  rotate_left_ramp(60);
+//  read_sensor_readings();
+//  setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
   delay(1000);
+//  while(1){
+//    command = getRpiMessage();
+//    switch(command) {
+//      case 'F': move_forward_ramp(10);
+//                break;
+//      case 'L': rotate_left_ramp(90);
+//                break;
+//      case 'R': rotate_right_ramp(90);
+//                break;
+//      case 'B': move_backward_ramp(10);
+//                break;
+//    }
+//    read_sensor_readings();
+//    setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+//  }
+  while(1){
+    
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////
+/////////////////////////RASPBERRY PI COMMUNICATION//////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+// Print to Serial for RPi to read messages
+
+void setRPiMessage(int left, int right, int center_bot, int center_left, int center_right){
+  Serial.print("A2PC|");
+  Serial.print(left);
+  Serial.print(":");
+  Serial.print(right);
+  Serial.print(":");
+  Serial.print(center_bot);
+  Serial.print(":");
+  Serial.print(center_left);
+  Serial.print(":");
+  Serial.print(center_right);
+  Serial.print("\0");
+  Serial.print("\n");
+  Serial.flush();
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -87,7 +137,7 @@ void move_forward_ramp (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm <= 10) target_ticks = distance_cm * 58.15;
+  if (distance_cm <= 10) target_ticks = distance_cm * 58.02;
   else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
   else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
@@ -476,7 +526,7 @@ void rotate_left(int angle) {
   else if (angle <= 30) target_ticks = angle * 7.7; //7.72
   else if (angle <= 45) target_ticks = angle * 8.01; //8.635
   else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.5; 
+  else if (angle <= 90) target_ticks = angle * 8.522; // calibrated on 28/09
   else if (angle <= 180) target_ticks = angle * 9.1; 
   else if (angle <= 360) target_ticks = angle * 9.12; 
   else if (angle <= 540) target_ticks = angle * 9.11; 
@@ -490,7 +540,7 @@ void rotate_left(int angle) {
     compensation = tune_pid();
     md.setSpeeds(-(left_rotate_slow_speed + compensation), (right_rotate_slow_speed - compensation));
   }
-  md.setBrakes(left_brake_speed, right_brake_speed); 
+  md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -520,7 +570,7 @@ void rotate_right(int angle) {
     compensation = tune_pid();
     md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
   }  
-  md.setBrakes(left_brake_speed, right_brake_speed); 
+  md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setBrakes(0, 0);
 }
@@ -668,19 +718,24 @@ void align_angle(){
   }
 }
 
-void display_sensor_readings(){
+void read_sensor_readings(){
+  left_distance = get_median_distance(SENSOR_LEFT);
+  center_left_distance = get_median_distance(SENSOR_C_LEFT);
+  center_bottom_distance = get_median_distance(SENSOR_C_BOT);
+  center_right_distance = get_median_distance(SENSOR_C_RIGHT);
+  right_distance = get_median_distance(SENSOR_RIGHT);
   Serial.println("Left Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_LEFT));
+  Serial.println(left_distance);
   Serial.println("Right Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_RIGHT));
-  Serial.println("Center Left Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_LEFT));
-  Serial.println("Center Right Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_RIGHT));
-  Serial.println("Center Top Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_TOP));
+  Serial.println(right_distance);
   Serial.println("Center Bottom Sensor distance: ");
-  Serial.println(get_median_distance(SENSOR_C_BOT));
+  Serial.println(center_bottom_distance);
+  Serial.println("Center Left Sensor distance: ");
+  Serial.println(center_left_distance);
+  Serial.println("Center Right Sensor distance: ");
+  Serial.println(center_right_distance);
+//  Serial.println("Center Top Sensor distance: ");
+//  Serial.println(get_median_distance(SENSOR_C_TOP));
 }
 
 // Checklist task: avoid one obstacle placed on a 150 cm path
@@ -729,7 +784,7 @@ void avoid_obstacle(){
   // Get one block clearance of the obstacle
   move_forward_ramp(20);
   // Move along the breadth of the obstacle until the obstacle is detected cleared by the right sensor
-  while ((get_median_distance (SENSOR_RIGHT)-SIDE_SHORT_OFFSET)<15) {
+  while ((get_median_distance(SENSOR_RIGHT)-SIDE_SHORT_OFFSET)<15) {
     Serial.println("Loop 3");
     Serial.print("SENSOR_LEFT");
     Serial.println(get_median_distance(SENSOR_LEFT));
@@ -750,4 +805,39 @@ void avoid_obstacle(){
   {
     // End of avoidance
   }
+}
+
+// Checklist task: Useless curve without pivoting
+void avoid_obstacle_2() {
+  delay(50);
+  double comp;
+  int right_distance = get_median_distance(SENSOR_C_RIGHT);
+  int left_distance = get_median_distance(SENSOR_C_LEFT);
+  // before it turns
+  while(right_distance >= 25 && left_distance >= 25)
+  {
+    md.setM2Speed(200);
+    delay(2);
+    md.setM1Speed(200);
+    comp = tune_pid();
+    // md.setSpeeds(200, 200);
+    delay(50);
+    // move_forward_ramp(10);
+    right_distance = SENSOR_C_RIGHT.distance();
+    left_distance = SENSOR_C_LEFT.distance();
+  }
+  //start of the first turn
+  md.setM2Speed(0);
+  delay(1500);
+  md.setM2Speed(200);
+  md.setM1Speed(0);
+  delay(1500);
+  md.setM1Speed(200);
+  delay(1200);
+  md.setM1Speed(0);
+  delay(1500);
+  md.setM1Speed(200);
+  md.setM2Speed(0);
+  delay(1500);
+  md.setBrakes (400,400);
 }
