@@ -67,7 +67,7 @@ void setup() {
   right_rotate_speed = 350; //150
   left_rotate_slow_speed = 275; // for fastest path exploration
   right_rotate_slow_speed = 275; // for fastest path exploration
-  left_brake_speed = 385; //250
+  left_brake_speed = 385;
   right_brake_speed = 400;
   left_rotate_brake_speed = 400;
   right_rotate_brake_speed = 400;
@@ -144,10 +144,11 @@ void move_robot(char command) {
   Serial.print("RPI command: ");
   Serial.println(command);
   switch(command) {
-    case 'F': move_forward_ramp(20); break;
+    case 'F': move_forward_ramp(10); break;
     case 'L': rotate_left_ramp(90); break;
     case 'R': rotate_right_ramp(90); break;
     case 'B': move_backward_ramp(10); break;
+    case 'H': stop_robot(left_brake_speed, right_brake_speed); break;
   }
 }
 
@@ -597,6 +598,10 @@ void rotate_right(int angle) {
   md.setBrakes(0, 0);
 }
 
+void stop_robot(int left_brake_speed, int right_brake_speed) {
+  md.setBrakes(left_brake_speed, right_brake_speed); 
+}
+
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////PID TUNING////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
@@ -861,5 +866,5 @@ void avoid_obstacle_2() {
   md.setM1Speed(200);
   md.setM2Speed(0);
   delay(1500);
-  md.setBrakes (400,400);
+  md.setBrakes(400,400);
 }
