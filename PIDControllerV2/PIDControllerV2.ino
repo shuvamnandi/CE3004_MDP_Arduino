@@ -22,7 +22,7 @@ float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotat
 float left_brake_speed, right_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
 int angle;
 int left_distance = 0, center_left_distance = 0, center_bottom_distance = 0, center_right_distance = 0, right_distance = 0;
-char command;
+char command[64];
 
 // SETUP SENSORS PINS 
 // sensors are taking the ANALOG pins
@@ -54,6 +54,7 @@ SharpIR SENSOR_C_RIGHT (SENSOR_CR_PIN, 1080);  // center right, short range sens
 
 void setup() {
   Serial.begin(115200);
+  Serial.flush();
   md.init();
   pinMode(LEFT_MOTOR_PIN, INPUT);
   pinMode(RIGHT_MOTOR_PIN, INPUT);
@@ -73,39 +74,47 @@ void setup() {
 }
 
 void loop() {
-  move_forward_ramp(100);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-//  read_sensor_readings();
-//  setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+//  move_forward_ramp(100);
+//  rotate_left_ramp(90);
+//  rotate_left(90);
+  
+  read_sensor_readings();
+  setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
   delay(1000);
-//  while(1){
-//    command = getRpiMessage();
-//    switch(command) {
-//      case 'F': move_forward_ramp(10);
-//                break;
-//      case 'L': rotate_left_ramp(90);
-//                break;
-//      case 'R': rotate_right_ramp(90);
-//                break;
-//      case 'B': move_backward_ramp(10);
-//                break;
-//    }
-//    read_sensor_readings();
-//    setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
-//  }
-  while(1){
-    
+  char* rpiMsg = getRPiMessage();
+  Serial.print("rpiMsg: ");
+  Serial.println(rpiMsg);
+  if(strlen(rpiMsg)<=0) {
+    return;
   }
+  else if (strlen(rpiMsg) == 1) {
+    move_robot(rpiMsg[0]);
+    memset(rpiMsg, 0, sizeof(rpiMsg));
+  } 
+  else {
+    int n = strlen(rpiMsg);
+    for (int i = 0; i < n; i++){
+      move_robot(rpiMsg[i]);
+      delay(100);
+    }
+    memset(rpiMsg, 0, sizeof(rpiMsg));
+  }
+//  while(1){
+//    
+//  }
 }
 
 /////////////////////////////////////////////////////////////////////////
 /////////////////////////RASPBERRY PI COMMUNICATION//////////////////////
 /////////////////////////////////////////////////////////////////////////
+
+// Read message from Serial sent by RPi
+
+char* getRPiMessage() {
+  memset(command, 0, sizeof(command));
+  Serial.readBytes(command, 64);
+  return command;
+}
 
 // Print to Serial for RPi to read messages
 
@@ -128,6 +137,19 @@ void setRPiMessage(int left, int right, int center_bot, int center_left, int cen
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////ROBOT MOVEMENT CONTROL////////////////////////
 /////////////////////////////////////////////////////////////////////////
+
+// Cases for commands sent by Raspberry Pi to move
+
+void move_robot(char command) {
+  Serial.print("RPI command: ");
+  Serial.println(command);
+  switch(command) {
+    case 'F': move_forward_ramp(20); break;
+    case 'L': rotate_left_ramp(90); break;
+    case 'R': rotate_right_ramp(90); break;
+    case 'B': move_backward_ramp(10); break;
+  }
+}
 
 // Straight line movement
 
@@ -724,16 +746,16 @@ void read_sensor_readings(){
   center_bottom_distance = get_median_distance(SENSOR_C_BOT);
   center_right_distance = get_median_distance(SENSOR_C_RIGHT);
   right_distance = get_median_distance(SENSOR_RIGHT);
-  Serial.println("Left Sensor distance: ");
-  Serial.println(left_distance);
-  Serial.println("Right Sensor distance: ");
-  Serial.println(right_distance);
-  Serial.println("Center Bottom Sensor distance: ");
-  Serial.println(center_bottom_distance);
-  Serial.println("Center Left Sensor distance: ");
-  Serial.println(center_left_distance);
-  Serial.println("Center Right Sensor distance: ");
-  Serial.println(center_right_distance);
+//  Serial.println("Left Sensor distance: ");
+//  Serial.println(left_distance);
+//  Serial.println("Right Sensor distance: ");
+//  Serial.println(right_distance);
+//  Serial.println("Center Bottom Sensor distance: ");
+//  Serial.println(center_bottom_distance);
+//  Serial.println("Center Left Sensor distance: ");
+//  Serial.println(center_left_distance);
+//  Serial.println("Center Right Sensor distance: ");
+//  Serial.println(center_right_distance);
 //  Serial.println("Center Top Sensor distance: ");
 //  Serial.println(get_median_distance(SENSOR_C_TOP));
 }
