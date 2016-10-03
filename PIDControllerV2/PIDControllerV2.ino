@@ -77,9 +77,6 @@ void loop() {
 //  move_forward_ramp(100);
 //  rotate_left_ramp(90);
 //  rotate_left(90);
-  
-  read_sensor_readings();
-  setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
   delay(1000);
   char* rpiMsg = getRPiMessage();
   Serial.print("rpiMsg: ");
@@ -89,12 +86,16 @@ void loop() {
   }
   else if (strlen(rpiMsg) == 1) {
     move_robot(rpiMsg[0]);
+    read_sensor_readings();
+    setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
     memset(rpiMsg, 0, sizeof(rpiMsg));
-  } 
+  }
   else {
     int n = strlen(rpiMsg);
-    for (int i = 0; i < n; i++){
+    for (int i = 0; i < n; i++) {
       move_robot(rpiMsg[i]);
+      read_sensor_readings();
+      setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
       delay(100);
     }
     memset(rpiMsg, 0, sizeof(rpiMsg));
@@ -119,7 +120,7 @@ char* getRPiMessage() {
 // Print to Serial for RPi to read messages
 
 void setRPiMessage(int left, int right, int center_bot, int center_left, int center_right){
-  Serial.print("A2PC|");
+  Serial.print("AR2PC|");
   Serial.print(left);
   Serial.print(":");
   Serial.print(right);
@@ -144,6 +145,7 @@ void move_robot(char command) {
   Serial.print("RPI command: ");
   Serial.println(command);
   switch(command) {
+    case 'E': break;
     case 'F': move_forward_ramp(10); break;
     case 'L': rotate_left_ramp(90); break;
     case 'R': rotate_right_ramp(90); break;
