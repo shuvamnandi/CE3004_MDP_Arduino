@@ -22,7 +22,7 @@ float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotat
 float left_brake_speed, right_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
 int angle;
 int left_distance = 0, center_left_distance = 0, center_bottom_distance = 0, center_right_distance = 0, right_distance = 0;
-char command;
+char command[64];
 
 // SETUP SENSORS PINS 
 // sensors are taking the ANALOG pins
@@ -34,9 +34,9 @@ char command;
 #define SENSOR_CR_PIN 5
 #define WALL_DISTANCE 12
 
-#define FRONT_SHORT_OFFSET 2
-#define SIDE_SHORT_OFFSET 7
-#define FRONT_LONG_OFFSET 1
+#define FRONT_SHORT_OFFSET 7
+#define SIDE_SHORT_OFFSET 11
+#define FRONT_LONG_OFFSET 3
 //#define front_center_offset
 
 // 1080 => short range senor GP2Y0A21YK
@@ -54,6 +54,7 @@ SharpIR SENSOR_C_RIGHT (SENSOR_CR_PIN, 1080);  // center right, short range sens
 
 void setup() {
   Serial.begin(115200);
+  Serial.flush();
   md.init();
   pinMode(LEFT_MOTOR_PIN, INPUT);
   pinMode(RIGHT_MOTOR_PIN, INPUT);
@@ -66,60 +67,63 @@ void setup() {
   right_rotate_speed = 350; //150
   left_rotate_slow_speed = 275; // for fastest path exploration
   right_rotate_slow_speed = 275; // for fastest path exploration
-  left_brake_speed = 385; //250
+  left_brake_speed = 385;
   right_brake_speed = 400;
   left_rotate_brake_speed = 400;
   right_rotate_brake_speed = 400;
 }
 
 void loop() {
-  move_forward_ramp(100);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-  rotate_left_ramp(60);
-//  read_sensor_readings();
-//  setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
-  delay(1000);
-//  while(1){
-//    command = getRpiMessage();
-//    switch(command) {
-//      case 'F': move_forward_ramp(10);
-//                break;
-//      case 'L': rotate_left_ramp(90);
-//                break;
-//      case 'R': rotate_right_ramp(90);
-//                break;
-//      case 'B': move_backward_ramp(10);
-//                break;
-//    }
-//    read_sensor_readings();
-//    setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
-//  }
-  while(1){
-    
+  if (Serial.available()) {
+    char* rpiMsg = getRPiMessage();
+    if(strlen(rpiMsg)<=0) {
+      return;
+    }
+    else if (strlen(rpiMsg) == 1) {
+      move_robot(rpiMsg[0]);
+      read_sensor_readings();
+      setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+      memset(rpiMsg, 0, sizeof(rpiMsg));
+    }
+    else {
+      int n = strlen(rpiMsg);
+      for (int i = 0; i < n; i++) {
+        //Serial.println(rpiMsg[i]);
+        move_robot(rpiMsg[i]);
+        read_sensor_readings();
+        setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+      }
+      memset(rpiMsg, 0, sizeof(rpiMsg));
+    }
   }
+  Serial.flush();
 }
 
 /////////////////////////////////////////////////////////////////////////
 /////////////////////////RASPBERRY PI COMMUNICATION//////////////////////
 /////////////////////////////////////////////////////////////////////////
 
+// Read message from Serial sent by RPi
+
+char* getRPiMessage() {
+  memset(command, 0, sizeof(command));
+  Serial.readBytes(command, 64);
+  return command;
+}
+
 // Print to Serial for RPi to read messages
 
-void setRPiMessage(int left, int right, int center_bot, int center_left, int center_right){
-  Serial.print("A2PC|");
-  Serial.print(left);
+void setRPiMessage(int left, int center_left, int center_bottom, int center_right, int right){
+  Serial.print("AR2PC|");
+  Serial.print(left-SIDE_SHORT_OFFSET);
   Serial.print(":");
-  Serial.print(right);
+  Serial.print(center_left-FRONT_SHORT_OFFSET);
   Serial.print(":");
-  Serial.print(center_bot);
+  Serial.print(center_bottom-FRONT_LONG_OFFSET);
   Serial.print(":");
-  Serial.print(center_left);
+  Serial.print(center_right-FRONT_SHORT_OFFSET);
   Serial.print(":");
-  Serial.print(center_right);
+  Serial.print(right-SIDE_SHORT_OFFSET);
   Serial.print("\0");
   Serial.print("\n");
   Serial.flush();
@@ -128,6 +132,21 @@ void setRPiMessage(int left, int right, int center_bot, int center_left, int cen
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////ROBOT MOVEMENT CONTROL////////////////////////
 /////////////////////////////////////////////////////////////////////////
+
+// Cases for commands sent by Raspberry Pi to move
+
+void move_robot(char command) {
+  //Serial.print("RPI command: ");
+  //Serial.println(command);
+  switch(command) {
+    case 'E': break;
+    case 'F': move_forward_ramp(10); break;
+    case 'L': rotate_left_ramp(90); break;
+    case 'R': rotate_right_ramp(90); break;
+    case 'B': move_backward_ramp(10); break;
+    case 'H': stop_robot(left_brake_speed, right_brake_speed); break;
+  }
+}
 
 // Straight line movement
 
@@ -155,11 +174,6 @@ void move_forward_ramp (int distance_cm) {
   else if(distance_cm<=160) target_ticks = distance_cm * 60.5; //calibration redone on 26/9
   else if(distance_cm<=170) target_ticks = distance_cm * 60.5; 
   else target_ticks = distance_cm * 60.5;
-  
-  Serial.print("Distance_cm: ");
-  Serial.println(distance_cm);
-  Serial.print("target tick: ");
-  Serial.println(target_ticks);
   
   while (encoder_right < 100)
   {
@@ -231,11 +245,6 @@ void move_backward_ramp (int distance_cm) {
   else if(distance_cm<=170) target_ticks = distance_cm * 72.5;
   else target_ticks = distance_cm * 72.5;
   
-  Serial.print("Distance_cm: ");
-  Serial.println(distance_cm);
-  Serial.print("target tick: ");
-  Serial.println(target_ticks);
-  
   while (encoder_right < 100)
   {
     compensation = tune_pid();
@@ -271,10 +280,10 @@ void move_backward_ramp (int distance_cm) {
     compensation = tune_pid();
     md.setSpeeds(-(100 + compensation), -(100 - compensation));
   }
-  Serial.print("encoder_left: ");
-  Serial.println(encoder_left);
-  Serial.print("encoder_right: ");
-  Serial.println(encoder_right);
+//  Serial.print("encoder_left: ");
+//  Serial.println(encoder_left);
+//  Serial.print("encoder_right: ");
+//  Serial.println(encoder_right);
   //Okay at HPL
   //md.setBrakes(375, 400);
 
@@ -308,11 +317,6 @@ void move_forward (int distance_cm) {
   else if(distance_cm<=160) target_ticks = distance_cm * 60.5; //calibration redone on 26/9
   else if(distance_cm<=170) target_ticks = distance_cm * 60.5; 
   else target_ticks = distance_cm * 60.5;
-  
-  Serial.print("Distance_cm: ");
-  Serial.println(distance_cm);
-  Serial.print("target tick: ");
-  Serial.println(target_ticks);
   
   while (encoder_right < 200)
   {
@@ -366,11 +370,6 @@ void move_backward (int distance_cm) {
   else if(distance_cm<=170) target_ticks = distance_cm * 72.5;
   else target_ticks = distance_cm * 72.5;
   
-  Serial.print("Distance_cm: ");
-  Serial.println(distance_cm);
-  Serial.print("target tick: ");
-  Serial.println(target_ticks);
-  
   while (encoder_right < 100)
   {
     compensation = tune_pid();
@@ -406,10 +405,10 @@ void move_backward (int distance_cm) {
     compensation = tune_pid();
     md.setSpeeds(-(100 + compensation), -(100 - compensation));
   }
-  Serial.print("encoder_left: ");
-  Serial.println(encoder_left);
-  Serial.print("encoder_right: ");
-  Serial.println(encoder_right);
+//  Serial.print("encoder_left: ");
+//  Serial.println(encoder_left);
+//  Serial.print("encoder_right: ");
+//  Serial.println(encoder_right);
   //Okay at HPL
   //md.setBrakes(375, 400);
 
@@ -575,6 +574,10 @@ void rotate_right(int angle) {
   md.setBrakes(0, 0);
 }
 
+void stop_robot(int left_brake_speed, int right_brake_speed) {
+  md.setBrakes(left_brake_speed, right_brake_speed); 
+}
+
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////////////PID TUNING////////////////////////////////
 /////////////////////////////////////////////////////////////////////////
@@ -621,7 +624,7 @@ double tune_pid () {
 //Takes a median of the distance for accurate reading 
 int get_distance (SharpIR sensor) {
  int distance = sensor.distance();
- // if any snesor reading is more than 70, return as 70. comment out this line for  actual implimenatation
+ // if any snesor reading is more than 70, return as 70
  if (distance > 70) {
   return 70;
  }
@@ -724,18 +727,6 @@ void read_sensor_readings(){
   center_bottom_distance = get_median_distance(SENSOR_C_BOT);
   center_right_distance = get_median_distance(SENSOR_C_RIGHT);
   right_distance = get_median_distance(SENSOR_RIGHT);
-  Serial.println("Left Sensor distance: ");
-  Serial.println(left_distance);
-  Serial.println("Right Sensor distance: ");
-  Serial.println(right_distance);
-  Serial.println("Center Bottom Sensor distance: ");
-  Serial.println(center_bottom_distance);
-  Serial.println("Center Left Sensor distance: ");
-  Serial.println(center_left_distance);
-  Serial.println("Center Right Sensor distance: ");
-  Serial.println(center_right_distance);
-//  Serial.println("Center Top Sensor distance: ");
-//  Serial.println(get_median_distance(SENSOR_C_TOP));
 }
 
 // Checklist task: avoid one obstacle placed on a 150 cm path
@@ -839,5 +830,5 @@ void avoid_obstacle_2() {
   md.setM1Speed(200);
   md.setM2Speed(0);
   delay(1500);
-  md.setBrakes (400,400);
+  md.setBrakes(400,400);
 }
