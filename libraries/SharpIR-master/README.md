@@ -35,11 +35,11 @@ Based on an original work of Dr. Marcal Casas-Cartagena .
 | 0,455 | 140 |
 | 0,435 | 150 |
 
-Using MS Excel, we can found folowing formula (For distance > 15cm) :
+Using MS Excel, we can find following formula (For distance > 15cm) :
 
 Distance = 60.374 X POW(Volt , -1.16)
 
-## GP2Y0A21YK 
+## GP2Y0A21YK
 ### Model: "1080" [10cm to 80cm]
 
 | Volt | Distance |
@@ -62,15 +62,15 @@ Distance = 60.374 X POW(Volt , -1.16)
 | 0,45 | 75 |
 | 0,42 | 80 |
 
-Using MS Excel, we can found folowing formula (For distance > 10cm) :
+Using MS Excel, we can find following formula (For distance > 10cm) :
 
 Distance = 29.988 X POW(Volt , -1.173)
 
 ## GP2Y0A710K0F
 ### Model: "100500" [100cm to 500cm]
 
-Based on the SHARP datasheet we can calculate the linear function: 
-`y = 137500x + 1125` 
-which gives us: 
+Based on the SHARP datasheet we can calculate the linear function:
+`y = 137500x + 1125`
+which gives us:
 `1 / ((Volt - 1125) / 137500) = distance_in_cm`
 (For distance > 100cm)
