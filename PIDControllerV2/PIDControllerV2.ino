@@ -20,7 +20,7 @@ double error = 0.0, integralError = 0.0, target_ticks = 0.0;
 float left_straight_speed, right_straight_speed;
 float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotate_slow_speed;
 float left_brake_speed, right_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
-int angle;
+int angle; 
 int left_distance = 0, center_left_distance = 0, center_bottom_distance = 0, center_right_distance = 0, right_distance = 0, right_long_distance = 0;
 char command[64];
 
@@ -34,15 +34,16 @@ char command[64];
 #define SENSOR_CR_PIN 5
 
 #define FRONT_SHORT_OFFSET 7
-#define SIDE_SHORT_OFFSET 11
-#define FRONT_LONG_OFFSET 3
+#define SIDE_SHORT_OFFSET 12
+#define SIDE_LONG_OFFSET 11
+#define WALL_DISTANCE 12
 
 // 1080 => short range senor GP2Y0A21YK
 // 20150 => long range sensor GP2Y0A02YK
 SharpIR SENSOR_LEFT (SENSOR_LEFT_PIN, 1080); // left, short range sensor
 SharpIR SENSOR_RIGHT (SENSOR_RIGHT_PIN, 1080); // right, short range sensor
 SharpIR SENSOR_RIGHT_LONG (SENSOR_RIGHT_LONG_PIN, 20150); // center top, long range sensor
-SharpIR SENSOR_C_BOT (SENSOR_CB_PIN, 20150); // center bottom, long range sensor
+SharpIR SENSOR_C_BOT (SENSOR_CB_PIN, 1080); // center bottom, short range sensor
 SharpIR SENSOR_C_LEFT (SENSOR_CL_PIN, 1080);  // center left, short range sensor
 SharpIR SENSOR_C_RIGHT (SENSOR_CR_PIN, 1080);  // center right, short range sensor
 
@@ -72,6 +73,7 @@ void setup() {
 }
 
 void loop() {
+//  read_sensor_readings();
   char* rpiMsg = getRPiMessage();
   if(strlen(rpiMsg)<=0) {
     return;
@@ -108,6 +110,7 @@ char* getRPiMessage() {
 }
 
 // Print to Serial for RPi to read messages
+// Not used at the moment 
 
 void setRPiMessage(int left, int center_left, int center_bottom, int center_right, int right, int right_long){
   Serial.print("AR2PC|");
@@ -115,7 +118,7 @@ void setRPiMessage(int left, int center_left, int center_bottom, int center_righ
   Serial.print(":");
   Serial.print(center_left-FRONT_SHORT_OFFSET);
   Serial.print(":");
-  Serial.print(center_bottom-FRONT_LONG_OFFSET);
+  Serial.print(center_bottom-FRONT_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_right-FRONT_SHORT_OFFSET);
   Serial.print(":");
@@ -137,8 +140,8 @@ void move_robot(char command) {
   switch(command) {
     case 'E': break;
     case 'F': move_forward_ramp(10); break;
-    case 'L': align_angle(); rotate_left_ramp(90); break;
-    case 'R': align_angle(); rotate_right_ramp(90); break;
+    case 'L': rotate_left_ramp(90); break;
+    case 'R': rotate_right_ramp(90); break;
     case 'B': move_backward_ramp(10); break;
     case 'H': stop_robot(); break;
     case 'X': fastest_path(); break;
@@ -147,8 +150,8 @@ void move_robot(char command) {
 
 void fastest_path() {
   int multiplication;
-  char* rpiMsg2 = getRPiMessage();
-  String rpiMsg(rpiMsg2);
+  char* rpi_message = getRPiMessage();
+  String rpiMsg(rpi_message);
   Serial.println(rpiMsg);
   int strlength = rpiMsg.length();
   for ( int i = 0; i < strlength-1; i++)  {
@@ -257,7 +260,7 @@ void move_forward_ramp (int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(1000);
+  delay(150);
 }
 
 void move_backward_ramp (int distance_cm) {
@@ -328,7 +331,7 @@ void move_backward_ramp (int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(500);
+  delay(150);
 }
 
 void move_forward (int distance_cm) {
@@ -376,7 +379,7 @@ void move_forward (int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(500);
+  delay(150);
 }
 
 void move_backward (int distance_cm) {
@@ -443,7 +446,7 @@ void move_backward (int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(500);
+  delay(150);
 }
 
 // Rotation
@@ -492,7 +495,7 @@ void rotate_left_ramp(int angle) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(500);
+  delay(150);
 }
 
 void rotate_right_ramp(int angle) {
@@ -538,7 +541,7 @@ void rotate_right_ramp(int angle) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(500);
+  delay(150);
 }
 
 // Without ramp
@@ -571,7 +574,7 @@ void rotate_left(int angle) {
   md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setSpeeds(0, 0);
-  delay(500);
+  delay(150);
 }
 
 void rotate_right(int angle) {
@@ -602,7 +605,7 @@ void rotate_right(int angle) {
   md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setSpeeds(0, 0);
-  delay(1000);
+  delay(150);
 }
 
 void stop_robot() {
@@ -666,8 +669,8 @@ int get_distance (SharpIR sensor) {
 int get_median_distance (SharpIR sensor) {
   RunningMedian buffer = RunningMedian(100);
   for (int i = 0; i < 25; i ++)
-  {
-      delay(20);
+  {   
+      delay(10);                                                                                        
       buffer.add(get_distance(sensor)); 
   }
   return buffer.getMedian();
@@ -760,12 +763,15 @@ void read_sensor_readings(){
   center_bottom_distance = get_median_distance(SENSOR_C_BOT);
   center_right_distance = get_median_distance(SENSOR_C_RIGHT);
   right_distance = get_median_distance(SENSOR_RIGHT);
+  right_long_distance = get_median_distance(SENSOR_RIGHT_LONG);
+  if ((right_long_distance-SIDE_LONG_OFFSET) >= 20)
+    right_distance = right_long_distance-SIDE_LONG_OFFSET+SIDE_SHORT_OFFSET;
   Serial.print("AR2PC|");
   Serial.print(left_distance-SIDE_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_left_distance-FRONT_SHORT_OFFSET);
   Serial.print(":");
-  Serial.print(center_bottom_distance-FRONT_LONG_OFFSET);
+  Serial.print(center_bottom_distance-FRONT_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_right_distance-FRONT_SHORT_OFFSET);
   Serial.print(":");
