@@ -109,7 +109,7 @@ char* getRPiMessage() {
 
 // Print to Serial for RPi to read messages
 
-void setRPiMessage(int left, int center_left, int center_bottom, int center_right, int right, int right_longre){
+void setRPiMessage(int left, int center_left, int center_bottom, int center_right, int right, int right_long){
   Serial.print("AR2PC|");
   Serial.print(left-SIDE_SHORT_OFFSET);
   Serial.print(":");
