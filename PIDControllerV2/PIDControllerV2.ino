@@ -75,6 +75,7 @@ void setup() {
 }
 
 void loop() {
+//  read_sensor_readings();
   char* rpiMsg = get_rpi_message();
   if(strlen(rpiMsg)<=0) {
     return;
@@ -206,7 +207,7 @@ void move_forward_ramp (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm <= 10) target_ticks = distance_cm * 58.02;
+  if (distance_cm <= 10) target_ticks = distance_cm * 54.1; // calibration done on 11/10
   else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
   else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
@@ -249,7 +250,7 @@ void move_forward_ramp (int distance_cm) {
     md.setSpeeds(125 + compensation, 125 - compensation);
   }
   md.setBrakes(left_ramp_brake_speed, right_ramp_brake_speed);
-  delay(80);
+  delay(25);
   md.setSpeeds(0, 0);
   delay(50);
 }
@@ -261,7 +262,7 @@ void move_backward_ramp (int distance_cm) {
   error = 0.0;
   integralError = 0.0;
   //target_ticks = distance_cm * 58.5;
-  if (distance_cm<= 10) target_ticks = distance_cm * 58.3;
+  if (distance_cm<= 10) target_ticks = distance_cm * 54.1;
   else if(distance_cm<=20) target_ticks = distance_cm * 58.3;
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
   else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
@@ -308,7 +309,7 @@ void move_backward_ramp (int distance_cm) {
 
   // at HWL2
   md.setBrakes(left_brake_speed, right_brake_speed);
-  delay(80);
+  delay(25);
   md.setSpeeds(0, 0);
   delay(50);
 }
@@ -460,7 +461,7 @@ void rotate_left_ramp(int angle) {
   else if (angle <= 30) target_ticks = angle * 7.7; //7.72
   else if (angle <= 45) target_ticks = angle * 8.01; //8.635
   else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.877; // calibration redone on 26/9
+  else if (angle <= 90) target_ticks = angle * 8.5; // calibration redone on 11/10
   else if (angle <= 180) target_ticks = angle * 9.1; // calibration redone on 26/9
   else if (angle <= 360) target_ticks = angle * 9.12; // calibration redone on 26/9
   else if (angle <= 540) target_ticks = angle * 9.11; // calibration redone on 26/9
@@ -665,9 +666,9 @@ int get_distance (SharpIR sensor) {
 
 int get_median_distance (SharpIR sensor) {
   RunningMedian buffer = RunningMedian(100);
-  for (int i = 0; i < 25; i ++)
+  for (int i = 0; i < 25; i++)
   {
-      delay(10);
+      delay(1);
       buffer.add(get_distance(sensor)); 
   }
   return buffer.getMedian();
@@ -761,8 +762,8 @@ void read_sensor_readings(){
   center_right_distance = get_median_distance(SENSOR_C_RIGHT);
   right_distance = get_median_distance(SENSOR_RIGHT);
   right_long_distance = get_median_distance(SENSOR_RIGHT_LONG);
-  if ((right_long_distance - SIDE_LONG_OFFSET) >= 20) 
-    right_distance = right_long_distance - SIDE_LONG_OFFSET + SIDE_SHORT_OFFSET;
+  if ((right_distance - SIDE_SHORT_OFFSET) > 15) 
+    right_distance = right_long_distance - SIDE_LONG_OFFSET + 4 + SIDE_SHORT_OFFSET;
   Serial.print("AR2PC|");
   Serial.print(left_distance-SIDE_SHORT_OFFSET);
   Serial.print(":");
