@@ -19,9 +19,9 @@ volatile float encoder_right = 0;
 double error = 0.0, integralError = 0.0, target_ticks = 0.0;
 float left_straight_speed, right_straight_speed;
 float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotate_slow_speed;
-float left_brake_speed, right_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
-int angle; 
-int left_distance = 0, center_left_distance = 0, center_bottom_distance = 0, center_right_distance = 0, right_distance = 0, right_long_distance = 0;
+float left_brake_speed, right_brake_speed, left_ramp_brake_speed, right_ramp_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
+int angle;
+int left_distance = 0, center_left_distance = 0, center_distance = 0, center_right_distance = 0, right_distance = 0, right_long_distance = 0;
 char command[64];
 
 // SETUP SENSORS PINS 
@@ -42,7 +42,7 @@ char command[64];
 // 20150 => long range sensor GP2Y0A02YK
 SharpIR SENSOR_LEFT (SENSOR_LEFT_PIN, 1080); // left, short range sensor
 SharpIR SENSOR_RIGHT (SENSOR_RIGHT_PIN, 1080); // right, short range sensor
-SharpIR SENSOR_RIGHT_LONG (SENSOR_RIGHT_LONG_PIN, 20150); // center top, long range sensor
+SharpIR SENSOR_RIGHT_LONG (SENSOR_RIGHT_LONG_PIN, 20150); // right, long range sensor
 SharpIR SENSOR_C_BOT (SENSOR_CB_PIN, 1080); // center bottom, short range sensor
 SharpIR SENSOR_C_LEFT (SENSOR_CL_PIN, 1080);  // center left, short range sensor
 SharpIR SENSOR_C_RIGHT (SENSOR_CR_PIN, 1080);  // center right, short range sensor
@@ -68,20 +68,21 @@ void setup() {
   right_rotate_slow_speed = 275; // for fastest path exploration
   left_brake_speed = 385;
   right_brake_speed = 400;
+  left_ramp_brake_speed = 400;
+  right_ramp_brake_speed = 400;
   left_rotate_brake_speed = 400;
   right_rotate_brake_speed = 400;
 }
 
 void loop() {
-//  read_sensor_readings();
-  char* rpiMsg = getRPiMessage();
+  char* rpiMsg = get_rpi_message();
   if(strlen(rpiMsg)<=0) {
     return;
   }
   else if (strlen(rpiMsg) == 1) {
     move_robot(rpiMsg[0]);
     read_sensor_readings();
-    //setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+    //set_rpi_message(left_distance, center_left_distance, center_distance, center_right_distance, right_distance);
     memset(rpiMsg, 0, sizeof(rpiMsg));
   }
   else {
@@ -90,7 +91,7 @@ void loop() {
       Serial.println(rpiMsg[i]);
       move_robot(rpiMsg[i]);
       read_sensor_readings();
-      //setRPiMessage(left_distance, center_left_distance, center_bottom_distance, center_right_distance, right_distance);
+      //set_rpi_message(left_distance, center_left_distance, center_distance, center_right_distance, right_distance);
     }
     memset(rpiMsg, 0, sizeof(rpiMsg));
   }
@@ -103,22 +104,24 @@ void loop() {
 
 // Read message from Serial sent by RPi
 
-char* getRPiMessage() {
+char* get_rpi_message() {
   memset(command, 0, sizeof(command));
   Serial.readBytes(command, 64);
   return command;
 }
 
 // Print to Serial for RPi to read messages
-// Not used at the moment 
 
-void setRPiMessage(int left, int center_left, int center_bottom, int center_right, int right, int right_long){
+void set_rpi_message(int left, int center_left, int center, int center_right, int right, int right_long){
+  // For distances greater than 20 cm, use long 
+  if ((right_long - SIDE_LONG_OFFSET) >= 20) 
+    right = right_long - SIDE_LONG_OFFSET + SIDE_SHORT_OFFSET;
   Serial.print("AR2PC|");
   Serial.print(left-SIDE_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_left-FRONT_SHORT_OFFSET);
   Serial.print(":");
-  Serial.print(center_bottom-FRONT_SHORT_OFFSET);
+  Serial.print(center-FRONT_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_right-FRONT_SHORT_OFFSET);
   Serial.print(":");
@@ -150,7 +153,7 @@ void move_robot(char command) {
 
 void fastest_path() {
   int multiplication;
-  char* rpi_message = getRPiMessage();
+  char* rpi_message = get_rpi_message();
   String rpiMsg(rpi_message);
   Serial.println(rpiMsg);
   int strlength = rpiMsg.length();
@@ -222,6 +225,119 @@ void move_forward_ramp (int distance_cm) {
   else if(distance_cm<=170) target_ticks = distance_cm * 60.5; 
   else target_ticks = distance_cm * 60.5;
   
+  while (encoder_right < target_ticks * 0.1)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(100 + compensation, 100 - compensation);
+  }
+  
+  while (encoder_right < target_ticks * 0.3)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(125 + compensation, 125 - compensation);
+  }
+  
+  while (encoder_right < target_ticks * 0.8)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(200 + compensation, 200 - compensation);
+  }
+  
+  while (encoder_right < target_ticks)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(125 + compensation, 125 - compensation);
+  }
+  md.setBrakes(left_ramp_brake_speed, right_ramp_brake_speed);
+  delay(80);
+  md.setSpeeds(0, 0);
+  delay(50);
+}
+
+void move_backward_ramp (int distance_cm) {
+  encoder_left = 0;
+  encoder_right = 0;
+  double compensation = 0;
+  error = 0.0;
+  integralError = 0.0;
+  //target_ticks = distance_cm * 58.5;
+  if (distance_cm<= 10) target_ticks = distance_cm * 58.3;
+  else if(distance_cm<=20) target_ticks = distance_cm * 58.3;
+  else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
+  else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
+  else if(distance_cm<=50) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=60) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=70) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=80) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=90) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=100) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=110) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=120) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=130) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=140) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=150) target_ticks = distance_cm * 72.5;
+  else if(distance_cm<=160) target_ticks = distance_cm * 72.5;
+  else if(distance_cm<=170) target_ticks = distance_cm * 72.5;
+  else target_ticks = distance_cm * 72.5;
+  
+  while (encoder_right < target_ticks * 0.1)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(100 + compensation), -(100 - compensation));
+  }
+  
+  while (encoder_right < target_ticks * 0.3)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(125 + compensation), -(125 - compensation));
+  }
+  
+  while (encoder_right < target_ticks * 0.8)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(200 + compensation), -(200 - compensation));
+  }
+  
+  while (encoder_right < target_ticks)
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(125 + compensation), -(125 - compensation));
+  }
+  //Okay at HPL
+  //md.setBrakes(375, 400);
+
+  // at HWL2
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  delay(80);
+  md.setSpeeds(0, 0);
+  delay(50);
+}
+
+void move_forward (int distance_cm) {
+  encoder_left = 0;
+  encoder_right = 0;
+  double compensation = 0;
+  error = 0.0;
+  integralError = 0.0;
+  if (distance_cm <= 10) target_ticks = distance_cm * 58.3;
+  else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
+  else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
+  else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
+  else if(distance_cm<=50) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=60) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=70) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=80) target_ticks = distance_cm * 59.3;
+  else if(distance_cm<=90) target_ticks = distance_cm * 59.6; //calibration done
+  else if(distance_cm<=100) target_ticks = distance_cm * 60; //calibration redone on 26/9
+  else if(distance_cm<=110) target_ticks = distance_cm * 59.8; 
+  else if(distance_cm<=120) target_ticks = distance_cm * 60.3; //calibration redone on 26/9
+  else if(distance_cm<=130) target_ticks = distance_cm * 60.3; 
+  else if(distance_cm<=140) target_ticks = distance_cm * 60.5; 
+  else if(distance_cm<=150) target_ticks = distance_cm * 60.5; 
+  else if(distance_cm<=160) target_ticks = distance_cm * 60.5; //calibration redone on 26/9
+  else if(distance_cm<=170) target_ticks = distance_cm * 60.5; 
+  else target_ticks = distance_cm * 60.5;
+  
   while (encoder_right < 100)
   {
     compensation = tune_pid();
@@ -260,126 +376,7 @@ void move_forward_ramp (int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(150);
-}
-
-void move_backward_ramp (int distance_cm) {
-  encoder_left = 0;
-  encoder_right = 0;
-  double compensation = 0;
-  error = 0.0;
-  integralError = 0.0;
-  //target_ticks = distance_cm * 58.5;
-  if (distance_cm<= 10) target_ticks = distance_cm * 58.3;
-  else if(distance_cm<=20) target_ticks = distance_cm * 58.3;
-  else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
-  else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
-  else if(distance_cm<=50) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=60) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=70) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=80) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=90) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=100) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=110) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=120) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=130) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=140) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=150) target_ticks = distance_cm * 72.5;
-  else if(distance_cm<=160) target_ticks = distance_cm * 72.5;
-  else if(distance_cm<=170) target_ticks = distance_cm * 72.5;
-  else target_ticks = distance_cm * 72.5;
-  
-  while (encoder_right < 100)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(100 + compensation), -(100 - compensation));
-  }
-  
-  while (encoder_right < 200)
-  {
-    compensation = tune_pid(); 
-    md.setSpeeds(-(200 + compensation), -(200 - compensation));
-  }
-
-  while (encoder_right < 250)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(300 + compensation), -(300 - compensation));
-  }
-
-  while (encoder_right < target_ticks - 200)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(left_straight_speed + compensation), -(right_straight_speed - compensation));
-  }
-  
-  while (encoder_right < target_ticks - 100)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(200 + compensation), -(200 - compensation));
-  }
-
-  while (encoder_right < target_ticks)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(100 + compensation), -(100 - compensation));
-  }
-  //Okay at HPL
-  //md.setBrakes(375, 400);
-
-  // at HWL2
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  delay(80);
-  md.setSpeeds(0, 0);
-  delay(150);
-}
-
-void move_forward (int distance_cm) {
-  encoder_left = 0;
-  encoder_right = 0;
-  double compensation = 0;
-  error = 0.0;
-  integralError = 0.0;
-  if (distance_cm <= 10) target_ticks = distance_cm * 58.3;
-  else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
-  else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
-  else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
-  else if(distance_cm<=50) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=60) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=70) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=80) target_ticks = distance_cm * 59.3;
-  else if(distance_cm<=90) target_ticks = distance_cm * 59.6; //calibration done
-  else if(distance_cm<=100) target_ticks = distance_cm * 60; //calibration redone on 26/9
-  else if(distance_cm<=110) target_ticks = distance_cm * 59.8; 
-  else if(distance_cm<=120) target_ticks = distance_cm * 60.3; //calibration redone on 26/9
-  else if(distance_cm<=130) target_ticks = distance_cm * 60.3; 
-  else if(distance_cm<=140) target_ticks = distance_cm * 60.5; 
-  else if(distance_cm<=150) target_ticks = distance_cm * 60.5; 
-  else if(distance_cm<=160) target_ticks = distance_cm * 60.5; //calibration redone on 26/9
-  else if(distance_cm<=170) target_ticks = distance_cm * 60.5; 
-  else target_ticks = distance_cm * 60.5;
-  
-  while (encoder_right < 200)
-  {
-    compensation = tune_pid(); 
-    md.setSpeeds(250 + compensation, 200 - compensation);
-  }
-
-  while (encoder_right < target_ticks - 200)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(left_straight_speed + compensation, right_straight_speed - compensation);
-  }
-  
-  while (encoder_right < target_ticks)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(100 + compensation, 100 - compensation);
-  }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  delay(80);
-  md.setSpeeds(0, 0);
-  delay(150);
+  delay(50);
 }
 
 void move_backward (int distance_cm) {
@@ -446,7 +443,7 @@ void move_backward (int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(150);
+  delay(50);
 }
 
 // Rotation
@@ -495,7 +492,7 @@ void rotate_left_ramp(int angle) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(150);
+  delay(50);
 }
 
 void rotate_right_ramp(int angle) {
@@ -541,7 +538,7 @@ void rotate_right_ramp(int angle) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
   md.setSpeeds(0, 0);
-  delay(150);
+  delay(50);
 }
 
 // Without ramp
@@ -574,7 +571,7 @@ void rotate_left(int angle) {
   md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setSpeeds(0, 0);
-  delay(150);
+  delay(50);
 }
 
 void rotate_right(int angle) {
@@ -605,7 +602,7 @@ void rotate_right(int angle) {
   md.setBrakes(left_rotate_brake_speed, right_rotate_brake_speed); 
   delay(80);
   md.setSpeeds(0, 0);
-  delay(150);
+  delay(50);
 }
 
 void stop_robot() {
@@ -638,7 +635,7 @@ double tune_pid () {
 //  Kd = 0.01;
   // Okay at HWL2
   // Kp = 54 for rotation
-  Kp = 52; // increase in case it is going left, decrease in case it is going right
+  Kp = 49; // increase in case it is going left, decrease in case it is going right
   Ki = 0.1;
   //Kd = 0.01;
   error = encoder_right - encoder_left;
@@ -669,8 +666,8 @@ int get_distance (SharpIR sensor) {
 int get_median_distance (SharpIR sensor) {
   RunningMedian buffer = RunningMedian(100);
   for (int i = 0; i < 25; i ++)
-  {   
-      delay(10);                                                                                        
+  {
+      delay(10);
       buffer.add(get_distance(sensor)); 
   }
   return buffer.getMedian();
@@ -760,18 +757,18 @@ void align_angle(){
 void read_sensor_readings(){
   left_distance = get_median_distance(SENSOR_LEFT);
   center_left_distance = get_median_distance(SENSOR_C_LEFT);
-  center_bottom_distance = get_median_distance(SENSOR_C_BOT);
+  center_distance = get_median_distance(SENSOR_C_BOT);
   center_right_distance = get_median_distance(SENSOR_C_RIGHT);
   right_distance = get_median_distance(SENSOR_RIGHT);
   right_long_distance = get_median_distance(SENSOR_RIGHT_LONG);
-  if ((right_long_distance-SIDE_LONG_OFFSET) >= 20)
-    right_distance = right_long_distance-SIDE_LONG_OFFSET+SIDE_SHORT_OFFSET;
+  if ((right_long_distance - SIDE_LONG_OFFSET) >= 20) 
+    right_distance = right_long_distance - SIDE_LONG_OFFSET + SIDE_SHORT_OFFSET;
   Serial.print("AR2PC|");
   Serial.print(left_distance-SIDE_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_left_distance-FRONT_SHORT_OFFSET);
   Serial.print(":");
-  Serial.print(center_bottom_distance-FRONT_SHORT_OFFSET);
+  Serial.print(center_distance-FRONT_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_right_distance-FRONT_SHORT_OFFSET);
   Serial.print(":");
