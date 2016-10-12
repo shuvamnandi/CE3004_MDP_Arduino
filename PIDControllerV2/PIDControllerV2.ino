@@ -22,6 +22,8 @@ float left_rotate_speed, right_rotate_speed, left_rotate_slow_speed, right_rotat
 float left_brake_speed, right_brake_speed, left_ramp_brake_speed, right_ramp_brake_speed, left_rotate_brake_speed, right_rotate_brake_speed;
 int angle;
 int left_distance = 0, center_left_distance = 0, center_distance = 0, center_right_distance = 0, right_distance = 0, right_long_distance = 0;
+int move_counter;
+int initial_left_obstacle_distance = 0;
 char command[64];
 
 // SETUP SENSORS PINS 
@@ -33,7 +35,7 @@ char command[64];
 #define SENSOR_CL_PIN 4
 #define SENSOR_CR_PIN 5
 
-#define FRONT_SHORT_OFFSET 7
+#define FRONT_SHORT_OFFSET 8
 #define SIDE_SHORT_OFFSET 12
 #define SIDE_LONG_OFFSET 11
 #define WALL_DISTANCE 12
@@ -72,10 +74,11 @@ void setup() {
   right_ramp_brake_speed = 400;
   left_rotate_brake_speed = 400;
   right_rotate_brake_speed = 400;
+  move_counter = 0; // Used by align_angle()
+  initial_left_obstacle_distance = get_median_distance(SENSOR_LEFT) - SIDE_SHORT_OFFSET;
 }
 
 void loop() {
-//  read_sensor_readings();
   char* rpiMsg = get_rpi_message();
   if(strlen(rpiMsg)<=0) {
     return;
@@ -145,7 +148,7 @@ void move_robot(char command) {
     case 'E': break;
     case 'F': move_forward_ramp(10); break;
     case 'L': rotate_left_ramp(90); break;
-    case 'R': rotate_right_ramp(90); break;
+    case 'R': bot_calibration(); rotate_right_ramp(90); break;
     case 'B': move_backward_ramp(10); break;
     case 'H': stop_robot(); break;
     case 'X': fastest_path(); break;
@@ -158,7 +161,7 @@ void fastest_path() {
   String rpiMsg(rpi_message);
   Serial.println(rpiMsg);
   int strlength = rpiMsg.length();
-  for ( int i = 0; i < strlength-1; i++)  {
+  for ( int i = 0; i < strlength-1; i++) {
     Serial.print(i);
     Serial.print(":");
     Serial.println(rpiMsg[i]);
@@ -207,7 +210,7 @@ void move_forward_ramp (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm <= 10) target_ticks = distance_cm * 54.1; // calibration done on 11/10
+  if (distance_cm <= 10) target_ticks = distance_cm * 54.1; // calibration redone on 12/10
   else if(distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
   else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
@@ -252,7 +255,8 @@ void move_forward_ramp (int distance_cm) {
   md.setBrakes(left_ramp_brake_speed, right_ramp_brake_speed);
   delay(25);
   md.setSpeeds(0, 0);
-  delay(50);
+  //delay(50);
+  move_counter++;
 }
 
 void move_backward_ramp (int distance_cm) {
@@ -262,7 +266,7 @@ void move_backward_ramp (int distance_cm) {
   error = 0.0;
   integralError = 0.0;
   //target_ticks = distance_cm * 58.5;
-  if (distance_cm<= 10) target_ticks = distance_cm * 54.1;
+  if (distance_cm<= 10) target_ticks = distance_cm * 54.4;
   else if(distance_cm<=20) target_ticks = distance_cm * 58.3;
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
   else if(distance_cm<=40) target_ticks = distance_cm * 59.0;
@@ -311,7 +315,7 @@ void move_backward_ramp (int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(25);
   md.setSpeeds(0, 0);
-  delay(50);
+  //delay(50);
 }
 
 void move_forward (int distance_cm) {
@@ -502,13 +506,13 @@ void rotate_right_ramp(int angle) {
   double compensation = 0;
   error = 0;
   integralError = 0;
-  if (angle <= 5) target_ticks = angle * 5.2;
+  if (angle <= 5) target_ticks = angle * 3.7;
   else if (angle <= 10) target_ticks = angle * 6.3;
   else if (angle <= 15) target_ticks = angle * 6.4;
   else if (angle <= 30) target_ticks = angle * 7.7; //7.72
   else if (angle <= 45) target_ticks = angle * 8.01; //8.635
   else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.47; //8.643
+  else if (angle <= 90) target_ticks = angle * 8.51; //8.643
   else if (angle <= 180) target_ticks = angle * 9.75;    //tune 180
   else if (angle <= 360) target_ticks = angle * 9.37;
   else if (angle <= 720) target_ticks = angle * 9.15;
@@ -668,19 +672,18 @@ int get_median_distance (SharpIR sensor) {
   RunningMedian buffer = RunningMedian(100);
   for (int i = 0; i < 25; i++)
   {
-      delay(1);
+      delay(0.5);
       buffer.add(get_distance(sensor)); 
   }
   return buffer.getMedian();
 }
 
-//bot calibration
+// Robot calibration
 
 void bot_calibration()
 {
-  close_avoidance();
   align_angle();
-  move_forward_ramp(1);
+  align_distance();
 }
 
 void close_avoidance()
@@ -690,69 +693,46 @@ void close_avoidance()
   if ( (initial_left_distance > 14) || (initial_right_distance > 14) ) move_backward_ramp(2);
 }
 
-// Align the distances of the left and right wheel to the arena grids
+// Align the position ances of the robot to the arena grids
 void align_distance(){
-  while(1) {
-    int right_distance = get_median_distance(SENSOR_C_RIGHT);
-    if (right_distance > WALL_DISTANCE) {
-      move_forward_ramp(1); 
-      //md.setSpeeds(80,80);
-    }
-    else if (right_distance < WALL_DISTANCE) {
-      move_backward_ramp(1);
-    }
-    else 
-      break;
+  int center_left_distance, center_distance, center_right_distance;  
+  center_left_distance = get_median_distance(SENSOR_C_LEFT)-FRONT_SHORT_OFFSET;
+  if (center_left_distance < 5 && center_left_distance !=0) {
+    if (center_left_distance > 0)
+      move_forward_ramp(center_left_distance);
+    else if (center_left_distance < 0)
+      move_backward_ramp(-center_left_distance);
+      
   }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-
-  while(1) {
-    int left_distance = get_median_distance(SENSOR_C_LEFT);
-    if (left_distance > WALL_DISTANCE) {
-      move_forward_ramp(1);//md.setSpeeds(80,80);
-    }
-    else if (left_distance < WALL_DISTANCE) {
-      move_backward_ramp(1);
-    }
-    else 
-      break;
+  center_distance = get_median_distance(SENSOR_C_BOT)-FRONT_SHORT_OFFSET;
+  if (center_distance < 5 && center_distance !=0) {
+    if (center_distance < 5)
+      move_forward_ramp(center_distance);
+    else if (center_distance < 0)
+      move_backward_ramp(-center_distance);
   }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  int left_distance = get_median_distance(SENSOR_C_LEFT);
-  int right_distance = get_median_distance(SENSOR_C_RIGHT);
-  int error = left_distance - right_distance; 
-  // if (error >= 1 || error <= -1) {
-  //   align_angle();
-  // }
+  center_right_distance = get_median_distance(SENSOR_C_RIGHT)-FRONT_SHORT_OFFSET;
+  if (center_right_distance < 5 && center_right_distance !=0) {
+    if (center_right_distance < 5)
+      move_forward_ramp(center_right_distance);   
+    else if (center_right_distance < 0)
+      move_backward_ramp(-center_right_distance);   
+  }
 }
 
 // Correct the angle of the robot such that left and right parts of the robot are at equal distances from an obstacle
 void align_angle(){
-  int center_distance, left_distance, right_distance;  
-  left_distance = get_median_distance(SENSOR_C_LEFT);
-  right_distance = get_median_distance(SENSOR_C_RIGHT);
-  center_distance = get_median_distance(SENSOR_C_BOT);
-  int difference = 2*center_distance - left_distance - right_distance;
-  if ((difference < 4) || (difference > -4)){ 
-    while(1)
-    {  
-      Serial.println("left_distance");
-      Serial.println(left_distance);
-      Serial.println("right_distance");
-      Serial.println(right_distance);
-      left_distance = get_median_distance(SENSOR_C_LEFT);
-      right_distance = get_median_distance(SENSOR_C_RIGHT);
-      int error = left_distance - right_distance;
-      if (error >= 1) {
-        rotate_right(2);
-      }
-      else if (error <= -1) {
-        rotate_left(2);
-      }
-      else 
-        break;
-    }
-  }
+  int current_left_obstacle_distance = get_median_distance(SENSOR_LEFT)-SIDE_SHORT_OFFSET;
+  double error = current_left_obstacle_distance - initial_left_obstacle_distance;
+  double error_angle = asin(abs(error)/(move_counter*10))*(180/3.1459);
+  //Serial.print("error_angle: ");
+  //Serial.println(error_angle);
+  if (error > 0)
+    rotate_left_ramp(error_angle);
+  else if (error < 0)
+    rotate_right_ramp(error_angle);  
+  move_counter = 0;
+  initial_left_obstacle_distance = current_left_obstacle_distance;
 }
 
 void read_sensor_readings(){
