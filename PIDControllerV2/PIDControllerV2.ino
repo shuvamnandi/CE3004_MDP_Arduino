@@ -75,6 +75,23 @@ void setup() {
 }
 
 void loop() {
+//rotate_right_ramp(90);
+//delay(100);
+// rotate_left_ramp(90);
+// delay(100);
+// while(1){
+//   simulate();
+//   move_forward_ramp(10);
+
+// }
+
+  // while(1){
+  //   simulate();
+  //   move_forward_ramp(10);
+  // }
+
+  
+
   char* rpiMsg = get_rpi_message();
   if(strlen(rpiMsg)<=0) {
     return;
@@ -144,7 +161,7 @@ void move_robot(char command) {
     case 'E': break;
     case 'F': move_forward_ramp(10); break;
     case 'L': rotate_left_ramp(90); break;
-    case 'R': rotate_right_ramp(90); break;
+    case 'R': align_distance(); rotate_right_ramp(90); break;
     case 'B': move_backward_ramp(10); break;
     case 'H': stop_robot(); break;
     case 'X': fastest_path(); break;
@@ -200,7 +217,7 @@ void fastest_path() {
 
 // Straight line movement
 
-void move_forward_ramp (int distance_cm) {
+void move_forward_ramp(int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
   double compensation = 0;
@@ -254,7 +271,7 @@ void move_forward_ramp (int distance_cm) {
   delay(50);
 }
 
-void move_backward_ramp (int distance_cm) {
+void move_backward_ramp(int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
   double compensation = 0;
@@ -448,53 +465,6 @@ void move_backward (int distance_cm) {
 
 // Rotation
 // Accelerating and decelerating slowly
-void rotate_left_ramp(int angle) {
-  encoder_right = 0;
-  encoder_left = 0;
-  double compensation = 0;
-  error = 0;
-  integralError = 0;
-  if (angle <= 5) target_ticks = angle * 5.2;
-  else if (angle <= 10) target_ticks = angle * 6.3;
-  else if (angle <= 15) target_ticks = angle * 6.4;
-  else if (angle <= 30) target_ticks = angle * 7.7; //7.72
-  else if (angle <= 45) target_ticks = angle * 8.01; //8.635
-  else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.877; // calibration redone on 26/9
-  else if (angle <= 180) target_ticks = angle * 9.1; // calibration redone on 26/9
-  else if (angle <= 360) target_ticks = angle * 9.12; // calibration redone on 26/9
-  else if (angle <= 540) target_ticks = angle * 9.11; // calibration redone on 26/9
-  else if (angle <= 720) target_ticks = angle * 9.12; // calibration redone on 26/9
-  else if (angle <= 900) target_ticks = angle * 9.11; // calibration redone on 26/9
-  else if (angle <= 1080) target_ticks = angle * 9.1; // calibration redone on 26/9
-  else target_ticks = angle * 9.1;
-  
-  // ramping up
-  while (encoder_right < target_ticks * 0.2 )
-  {
-    compensation = tune_pid();
-    md.setSpeeds(- (150 + compensation), 150 - compensation);
-  }
-
-  // achieveing max speed  
-  while (encoder_right < target_ticks * 0.7) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(left_rotate_speed + compensation), (right_rotate_speed - compensation));
-  }
-
-  // ramping down
-  while (encoder_right < target_ticks) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(150 + compensation), (150 - compensation));
-  }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  delay(80);
-  md.setSpeeds(0, 0);
-  delay(50);
-}
-
 void rotate_right_ramp(int angle) {
   encoder_right = 0;
   encoder_left = 0;
@@ -507,7 +477,60 @@ void rotate_right_ramp(int angle) {
   else if (angle <= 30) target_ticks = angle * 7.7; //7.72
   else if (angle <= 45) target_ticks = angle * 8.01; //8.635
   else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.47; //8.643
+  else if (angle <= 90) target_ticks = angle * 8.77; // calibration redone on 11/10
+  else if (angle <= 180) target_ticks = angle * 9.1; // calibration redone on 26/9
+  else if (angle <= 360) target_ticks = angle * 9.12; // calibration redone on 26/9
+  else if (angle <= 540) target_ticks = angle * 9.11; // calibration redone on 26/9
+  else if (angle <= 720) target_ticks = angle * 9.12; // calibration redone on 26/9
+  else if (angle <= 900) target_ticks = angle * 9.11; // calibration redone on 26/9
+  else if (angle <= 1080) target_ticks = angle * 9.1; // calibration redone on 26/9
+  else target_ticks = angle * 9.1;
+  
+  // ramping up
+ while (encoder_right < target_ticks * 0.1 )
+  {
+    compensation = tune_pid();
+    md.setSpeeds(100 + compensation, -(100 - compensation));
+  }
+
+  while (encoder_right < target_ticks * 0.3 )
+  {
+    compensation = tune_pid();
+    md.setSpeeds(125 + compensation, -(125 - compensation));
+  }
+
+  // achieving max speed
+  while (encoder_right < target_ticks * 0.8) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(170 + compensation, -(170 - compensation));
+  }
+
+  // ramping down
+  while (encoder_right < target_ticks) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(125 + compensation, -(125 - compensation));
+  }
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  delay(80);
+  md.setSpeeds(0, 0);
+  delay(50);
+}
+
+void rotate_left_ramp(int angle) {
+  encoder_right = 0;
+  encoder_left = 0;
+  double compensation = 0;
+  error = 0;
+  integralError = 0;
+  if (angle <= 5) target_ticks = angle * 5.2;
+  else if (angle <= 10) target_ticks = angle * 6.3;
+  else if (angle <= 15) target_ticks = angle * 6.4;
+  else if (angle <= 30) target_ticks = angle * 7.7; //7.72
+  else if (angle <= 45) target_ticks = angle * 8.01; //8.635
+  else if (angle <= 60) target_ticks = angle * 8.25;
+  else if (angle <= 90) target_ticks = angle * 8.75; //8.643
   else if (angle <= 180) target_ticks = angle * 9.75;    //tune 180
   else if (angle <= 360) target_ticks = angle * 9.37;
   else if (angle <= 720) target_ticks = angle * 9.15;
@@ -516,24 +539,30 @@ void rotate_right_ramp(int angle) {
   else target_ticks = angle * 9.0;
 
   // ramping up
-  while (encoder_right < target_ticks * 0.2 )
+  while (encoder_right < target_ticks * 0.1 )
   {
     compensation = tune_pid();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
+    md.setSpeeds(-(100 + compensation), (100 - compensation));
+  }
+
+  while (encoder_right < target_ticks * 0.3 )
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(125 + compensation), (125 - compensation));
   }
 
   // achieving max speed
-  while (encoder_right < target_ticks * 0.7) 
+  while (encoder_right < target_ticks * 0.8) 
   {
     compensation = tune_pid();
-    md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
+    md.setSpeeds(-(170 + compensation), (170 - compensation));
   }
 
   // ramping down
   while (encoder_right < target_ticks) 
   {
     compensation = tune_pid();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
+    md.setSpeeds(-(125 + compensation), (125 - compensation));
   }
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
@@ -691,38 +720,53 @@ void close_avoidance()
 
 // Align the distances of the left and right wheel to the arena grids
 void align_distance(){
+  int center_left_distance, center_distance, center_right_distance;
   while(1) {
-    int right_distance = get_median_distance(SENSOR_C_RIGHT);
-    if (right_distance > WALL_DISTANCE) {
-      move_forward_ramp(1); 
+    center_right_distance = get_median_distance(SENSOR_C_RIGHT);
+    Serial.println (center_right_distance);
+    if (center_right_distance < FRONT_SHORT_OFFSET) {
+      move_backward_ramp(1);
+    }
+    else if (center_right_distance > FRONT_SHORT_OFFSET) {
+      move_forward_ramp(1);
       //md.setSpeeds(80,80);
     }
-    else if (right_distance < WALL_DISTANCE) {
-      move_backward_ramp(1);
-    }
     else 
       break;
   }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-
+  
   while(1) {
-    int left_distance = get_median_distance(SENSOR_C_LEFT);
-    if (left_distance > WALL_DISTANCE) {
+    center_left_distance = get_median_distance(SENSOR_C_LEFT);
+     Serial.println (center_left_distance);
+    if (center_left_distance < FRONT_SHORT_OFFSET) {
+      move_backward_ramp(1);
+    }
+    else if (center_left_distance > FRONT_SHORT_OFFSET) {
       move_forward_ramp(1);//md.setSpeeds(80,80);
     }
-    else if (left_distance < WALL_DISTANCE) {
+    else 
+      break;
+  }
+  
+  while(1) {
+    center_distance = get_median_distance(SENSOR_C_BOT);
+     Serial.println (center_distance);
+    if (center_distance < FRONT_SHORT_OFFSET) {
       move_backward_ramp(1);
+    }
+    else if (center_distance > FRONT_SHORT_OFFSET) {
+      move_forward_ramp(1);
     }
     else 
       break;
   }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  int left_distance = get_median_distance(SENSOR_C_LEFT);
-  int right_distance = get_median_distance(SENSOR_C_RIGHT);
-  int error = left_distance - right_distance; 
-  // if (error >= 1 || error <= -1) {
-  //   align_angle();
-  // }
+  
+  center_left_distance = get_median_distance(SENSOR_C_LEFT);
+  center_right_distance = get_median_distance(SENSOR_C_RIGHT);
+  int error = center_left_distance - center_right_distance; 
+  if (error >= 1 || error <= -1) {
+    align_angle();
+  }
 }
 
 // Correct the angle of the robot such that left and right parts of the robot are at equal distances from an obstacle
@@ -776,6 +820,21 @@ void read_sensor_readings(){
   Serial.print("\0");
   Serial.print("\n");
   Serial.flush();
+}
+
+void simulate(){
+  left_distance = get_median_distance(SENSOR_LEFT);
+  center_left_distance = get_median_distance(SENSOR_C_LEFT);
+  center_distance = get_median_distance(SENSOR_C_BOT);
+  center_right_distance = get_median_distance(SENSOR_C_RIGHT);
+  right_distance = get_median_distance(SENSOR_RIGHT);
+  right_long_distance = get_median_distance(SENSOR_RIGHT_LONG);
+  if ((center_left_distance<=15)&&(center_right_distance<=15)&&(center_distance<=15)) {
+    align_angle();
+    align_distance();
+    rotate_right_ramp(90);
+  }
+
 }
 
 // Checklist task: avoid one obstacle placed on a 150 cm path
