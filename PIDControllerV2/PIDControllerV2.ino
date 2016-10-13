@@ -88,24 +88,11 @@ void setup() {
 }
 
 void loop() {
-//rotate_right_ramp(90);
-//delay(100);
-// rotate_left_ramp(90);
-// delay(100);
-// while(1){
-//   simulate();
-//   move_forward_ramp(10);
-
-// }
-
-  // while(1){
-  //   simulate();
-  //   move_forward_ramp(10);
-  // }
   char* rpiMsg = get_rpi_message();
   if(strlen(rpiMsg)<=0) {
     return;
   }
+  // Single character commands
   else if (strlen(rpiMsg) == 1) {
     Serial.print("XXXXXXXXXXXXXXX strlen(rpiMsg) == 1: ");
     Serial.println(rpiMsg);
@@ -114,18 +101,16 @@ void loop() {
     //set_rpi_message(left_distance, center_left_distance, center_distance, center_right_distance, right_distance);
     memset(rpiMsg, 0, sizeof(rpiMsg));
   }
+  // Multiple characters in single command, used in fastest path
   else {
     int n = strlen(rpiMsg);
     if (rpiMsg[0]=='X') {
       fastest_path(rpiMsg);
     }
-    for (int i = 0; i < n; i++) {
-      Serial.println(rpiMsg[i]);
-      move_robot(rpiMsg[i]);
-      read_sensor_readings();
-      //set_rpi_message(left_distance, center_left_distance, center_distance, center_right_distance, right_distance);
-    }
     memset(rpiMsg, 0, sizeof(rpiMsg));
+    // End of fastest path
+    while(1){ 
+    }
   }
   Serial.flush();
 }
@@ -164,16 +149,28 @@ char* get_rpi_message() {
 // }
 
 // Cases for commands sent by Raspberry Pi to move
+// 'A': Aligns the position of the robot, making it as straight as possible with respect to left side wall
+// 'D': Aligns the position of the robot, making it move forward or backward with respect to obstacle in front of it
+// 'E': Explore
+// 'F': Move forward by 10 cm
+// 'L': Rotate left by 90 degrees
+// 'R': Rotate left by 90 degrees
+// 'B': Move backward by 10 cm
+// 'M': Emergency robot calibration
+// 'S': Stop robot
 void move_robot(char command) {
   Serial.print("XXXXXXXXXXXXRPI command received by Arduino: ");
   Serial.println(command);
   switch(command) {
+    case 'A': align_angle(); break;
+    case 'D': align_distance(); break;
     case 'E': break;
     case 'F': move_forward_ramp(10); break;
     case 'L': rotate_left_ramp(90); break;
     case 'R': align_angle(); rotate_right_ramp(90); break;
     case 'B': move_backward_ramp(10); break;
-    case 'H': stop_robot(); break;
+    case 'M': robot_calibration(); break;
+    case 'S': stop_robot(); break;
   }
 }
 
@@ -402,20 +399,20 @@ void stop_robot() {
 void fastest_path(char* rpi_message) {
   int multiplication;
   String rpiMsg(rpi_message);
-  Serial.println(rpiMsg);
+  //Serial.println(rpiMsg);
   int strlength = rpiMsg.length();
   for (int i = 1; i < strlength-1; i++) {
-    Serial.print(i);
-    Serial.print(":");
-    Serial.println(rpiMsg[i]);
+    //Serial.print(i);
+    //Serial.print(":");
+    //Serial.println(rpiMsg[i]);
     if (rpiMsg[i]=='F') {
       while (rpiMsg[i] == rpiMsg[i+1]) {
         multiplication++;
         i++;
       }
       move_forward(10*multiplication);
-      Serial.print("F multiplication: ");
-      Serial.println(multiplication);
+      //Serial.print("F multiplication: ");
+      //Serial.println(multiplication);
       multiplication=1;
     }
     else if (rpiMsg[i] == 'R') {
@@ -423,8 +420,8 @@ void fastest_path(char* rpi_message) {
         multiplication++;
         i++;
       }
-      Serial.print("R multiplication: ");
-      Serial.println(multiplication);
+      //Serial.print("R multiplication: ");
+      //Serial.println(multiplication);
       rotate_right(90*multiplication);
       multiplication=1;
     }
@@ -433,8 +430,8 @@ void fastest_path(char* rpi_message) {
         multiplication++;
         i++;
       }
-      Serial.print("L multiplication: ");
-      Serial.println(multiplication);
+      //Serial.print("L multiplication: ");
+      //Serial.println(multiplication);
       rotate_left(90*multiplication);
       multiplication=1;
     }
@@ -444,9 +441,6 @@ void fastest_path(char* rpi_message) {
   Serial.print("\n");
   Serial.flush();
   //End after path is finished
-  while(1){
-    
-  }
 }
 
 
@@ -737,18 +731,18 @@ void read_sensor_readings() {
 /////////////////SECTION 7 - ROBOT SELF CALIBRATION//////////////////////
 /////////////////////////////////////////////////////////////////////////
 
-void bot_calibration()
+void robot_calibration()
 {
-  align_angle_obstacle();
+  align_angle();
   align_distance();
 }
 
 void error_alignment_forward (int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
-  double compensation = 0;
   error = 0.0;
   integralError = 0.0;
+  double compensation = 0;
   if (distance_cm <= 10) target_ticks = distance_cm * 54.1; // calibration redone on 12/10
   while (encoder_right < target_ticks)
   {
@@ -764,10 +758,9 @@ void error_alignment_forward (int distance_cm) {
 void error_alignment_backward(int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
-  double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  //target_ticks = distance_cm * 58.5;
+  double compensation = 0;
   if (distance_cm<= 10) target_ticks = distance_cm * 54.4;
   while (encoder_right < target_ticks)
   {
@@ -857,14 +850,14 @@ void align_angle() {
   //Serial.println(error);
   //Serial.print("Error angle: ");
   //Serial.println(error_angle);
-  if (error > 0){
+  if ((error > 0) && (error < 6)){
     error_alignment_rotate_left(error_angle);
-    move_counter = 0;
   }
-  else if (error < 0){
+  else if ((error < 0) && (error > -6)){
     error_alignment_rotate_right(error_angle);
-    move_counter = 0;  
   }
+  // Update the number of moves made by robot after alignment is done
+  move_counter = 0;
   initial_left_obstacle_distance = current_left_obstacle_distance;
 }
 
@@ -877,7 +870,7 @@ void align_angle_obstacle() {
   int difference = 2*center_distance - left_distance - right_distance;
   if ((difference < 4) || (difference > -4)){ 
     while(1)
-    {  
+    {
       //Serial.println("left_distance");
       //Serial.println(left_distance);
       //Serial.println("right_distance");
@@ -913,5 +906,4 @@ void simulate() {
     align_distance();
     rotate_right_ramp(90);
   }
-
 }
