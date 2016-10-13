@@ -4,7 +4,19 @@
 #include <RunningMedian.h>
 
 /////////////////////////////////////////////////////////////////////////
-///////////////////////////////HARDWARE SETUP////////////////////////////
+/////INDEX///////////////////////////////////////////////////////////////
+/////SECTION 1 - HARDWARE SETUP//////////////////////////////////////////
+/////SECTION 2 - RASPBERRY PI COMMUNICATION//////////////////////////////
+/////SECTION 3 - ROBOT MOVEMENT CONTROL EXPLORATION//////////////////////
+/////SECTION 4 - ROBOT MOVEMENT CONTROL FASTEST PATH/////////////////////
+/////SECTION 5 - PID TUNING//////////////////////////////////////////////
+/////SECTION 6 - ROBOT SENSOR CONTROL////////////////////////////////////
+/////SECTION 7 - ROBOT SELF CALIBRATION//////////////////////////////////
+/////SECTION 7 - DUBUGGING///////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////
+/////////////////////SECTION 1 - HARDWARE SETUP//////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
 // SETUP MOTOR PINS 
@@ -103,7 +115,7 @@ void loop() {
 }
 
 /////////////////////////////////////////////////////////////////////////
-/////////////////////////RASPBERRY PI COMMUNICATION//////////////////////
+/////////////////SECTION 2 - RASPBERRY PI COMMUNICATION//////////////////
 /////////////////////////////////////////////////////////////////////////
 
 // Read message from Serial sent by RPi
@@ -114,30 +126,26 @@ char* get_rpi_message() {
   return command;
 }
 
-// Print to Serial for RPi to read messages
+// // Print to Serial for RPi to read messages
 
-void set_rpi_message(int left, int center_left, int center, int center_right, int right, int right_long){
-  // For distances greater than 20 cm, use long 
-  if ((right_long - SIDE_LONG_OFFSET) >= 20) 
-    right = right_long - SIDE_LONG_OFFSET + SIDE_SHORT_OFFSET;
-  Serial.print("AR2PC|");
-  Serial.print(left-SIDE_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(center_left-FRONT_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(center-FRONT_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(center_right-FRONT_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(right-SIDE_SHORT_OFFSET);
-  Serial.print("\0");
-  Serial.print("\n");
-  Serial.flush();
-}
-
-/////////////////////////////////////////////////////////////////////////
-///////////////////////////ROBOT MOVEMENT CONTROL////////////////////////
-/////////////////////////////////////////////////////////////////////////
+// void set_rpi_message(int left, int center_left, int center, int center_right, int right, int right_long){
+//   // For distances greater than 20 cm, use long 
+//   if ((right_long - SIDE_LONG_OFFSET) >= 20) 
+//     right = right_long - SIDE_LONG_OFFSET + SIDE_SHORT_OFFSET;
+//   Serial.print("AR2PC|");
+//   Serial.print(left-SIDE_SHORT_OFFSET);
+//   Serial.print(":");
+//   Serial.print(center_left-FRONT_SHORT_OFFSET);
+//   Serial.print(":");
+//   Serial.print(center-FRONT_SHORT_OFFSET);
+//   Serial.print(":");
+//   Serial.print(center_right-FRONT_SHORT_OFFSET);
+//   Serial.print(":");
+//   Serial.print(right-SIDE_SHORT_OFFSET);
+//   Serial.print("\0");
+//   Serial.print("\n");
+//   Serial.flush();
+// }
 
 // Cases for commands sent by Raspberry Pi to move
 
@@ -155,54 +163,11 @@ void move_robot(char command) {
   }
 }
 
-void fastest_path() {
-  int multiplication;
-  char* rpi_message = get_rpi_message();
-  String rpiMsg(rpi_message);
-  Serial.println(rpiMsg);
-  int strlength = rpiMsg.length();
-  for ( int i = 0; i < strlength-1; i++) {
-    Serial.print(i);
-    Serial.print(":");
-    Serial.println(rpiMsg[i]);
-    if (rpiMsg[i]=='F') {
-      while (rpiMsg[i] == rpiMsg[i+1]) {
-        multiplication++;
-        i++;
-      }
-      move_forward(10*multiplication);
-      Serial.print("F multiplication: ");
-      Serial.println(multiplication);
-      multiplication=1;
-    }
-    else if (rpiMsg[i] == 'R') {
-      while (rpiMsg [i] == rpiMsg [i+1]) {
-        multiplication++;
-        i++;
-      }
-      Serial.print("R multiplication: ");
-      Serial.println(multiplication);
-      rotate_right(90*multiplication);
-      multiplication=1;
-    }
-    else if (rpiMsg[i] == 'L') {
-      while (rpiMsg [i] == rpiMsg [i+1]) {
-        multiplication++;
-        i++;
-      }
-      Serial.print("L multiplication: ");
-      Serial.println(multiplication);
-      rotate_left(90*multiplication);
-      multiplication=1;
-    }
-  }
-  //End after path is finished
-  while(1){
-    
-  }
-}
+/////////////////////////////////////////////////////////////////////////
+///////////SECTION 3 - ROBOT MOVEMENT CONTROL EXPLORATION////////////////
+/////////////////////////////////////////////////////////////////////////
 
-// Straight line movement
+
 
 void move_forward_ramp (int distance_cm) {
   encoder_left = 0;
@@ -317,6 +282,167 @@ void move_backward_ramp (int distance_cm) {
   md.setSpeeds(0, 0);
   //delay(50);
 }
+
+
+
+// Rotation
+// Accelerating and decelerating slowly
+void rotate_left_ramp(int angle) {
+  encoder_right = 0;
+  encoder_left = 0;
+  double compensation = 0;
+  error = 0;
+  integralError = 0;
+  if (angle <= 5) target_ticks = angle * 5.2;
+  else if (angle <= 10) target_ticks = angle * 6.3;
+  else if (angle <= 15) target_ticks = angle * 6.4;
+  else if (angle <= 30) target_ticks = angle * 7.7; //7.72
+  else if (angle <= 45) target_ticks = angle * 8.01; //8.635
+  else if (angle <= 60) target_ticks = angle * 8.3;
+  else if (angle <= 90) target_ticks = angle * 8.5; // calibration redone on 11/10
+  else if (angle <= 180) target_ticks = angle * 9.1; // calibration redone on 26/9
+  else if (angle <= 360) target_ticks = angle * 9.12; // calibration redone on 26/9
+  else if (angle <= 540) target_ticks = angle * 9.11; // calibration redone on 26/9
+  else if (angle <= 720) target_ticks = angle * 9.12; // calibration redone on 26/9
+  else if (angle <= 900) target_ticks = angle * 9.11; // calibration redone on 26/9
+  else if (angle <= 1080) target_ticks = angle * 9.1; // calibration redone on 26/9
+  else target_ticks = angle * 9.1;
+  
+  // ramping up
+  while (encoder_right < target_ticks * 0.2 )
+  {
+    compensation = tune_pid();
+    md.setSpeeds(- (150 + compensation), 150 - compensation);
+  }
+
+  // achieveing max speed  
+  while (encoder_right < target_ticks * 0.7) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(left_rotate_speed + compensation), (right_rotate_speed - compensation));
+  }
+
+  // ramping down
+  while (encoder_right < target_ticks) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(-(150 + compensation), (150 - compensation));
+  }
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  delay(80);
+  md.setSpeeds(0, 0);
+  delay(50);
+}
+
+void rotate_right_ramp(int angle) {
+  encoder_right = 0;
+  encoder_left = 0;
+  double compensation = 0;
+  error = 0;
+  integralError = 0;
+  if (angle <= 5) target_ticks = angle * 3.7;
+  else if (angle <= 10) target_ticks = angle * 6.3;
+  else if (angle <= 15) target_ticks = angle * 6.4;
+  else if (angle <= 30) target_ticks = angle * 7.7; //7.72
+  else if (angle <= 45) target_ticks = angle * 8.01; //8.635
+  else if (angle <= 60) target_ticks = angle * 8.3;
+  else if (angle <= 90) target_ticks = angle * 8.51; //8.643
+  else if (angle <= 180) target_ticks = angle * 9.75;    //tune 180
+  else if (angle <= 360) target_ticks = angle * 9.37;
+  else if (angle <= 720) target_ticks = angle * 9.15;
+  else if (angle <= 900) target_ticks = angle * 9.16;
+  else if (angle <= 1080) target_ticks = angle * 9.06;
+  else target_ticks = angle * 9.0;
+
+  // ramping up
+  while (encoder_right < target_ticks * 0.2 )
+  {
+    compensation = tune_pid();
+    md.setSpeeds(150 + compensation, -(150 - compensation));
+  }
+
+  // achieving max speed
+  while (encoder_right < target_ticks * 0.7) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
+  }
+
+  // ramping down
+  while (encoder_right < target_ticks) 
+  {
+    compensation = tune_pid();
+    md.setSpeeds(150 + compensation, -(150 - compensation));
+  }
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  delay(80);
+  md.setSpeeds(0, 0);
+  delay(50);
+}
+
+
+void stop_robot() {
+  md.setBrakes(left_brake_speed, right_brake_speed);
+  md.setSpeeds(0, 0);
+}
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////
+/////////////////SECTION 4 - ROBOT MOVEMENT CONTROL FASTEST PATH/////////
+/////////////////////////////////////////////////////////////////////////
+
+
+void fastest_path() {
+  int multiplication;
+  char* rpi_message = get_rpi_message();
+  String rpiMsg(rpi_message);
+  Serial.println(rpiMsg);
+  int strlength = rpiMsg.length();
+  for ( int i = 0; i < strlength-1; i++) {
+    Serial.print(i);
+    Serial.print(":");
+    Serial.println(rpiMsg[i]);
+    if (rpiMsg[i]=='F') {
+      while (rpiMsg[i] == rpiMsg[i+1]) {
+        multiplication++;
+        i++;
+      }
+      move_forward(10*multiplication);
+      Serial.print("F multiplication: ");
+      Serial.println(multiplication);
+      multiplication=1;
+    }
+    else if (rpiMsg[i] == 'R') {
+      while (rpiMsg [i] == rpiMsg [i+1]) {
+        multiplication++;
+        i++;
+      }
+      Serial.print("R multiplication: ");
+      Serial.println(multiplication);
+      rotate_right(90*multiplication);
+      multiplication=1;
+    }
+    else if (rpiMsg[i] == 'L') {
+      while (rpiMsg [i] == rpiMsg [i+1]) {
+        multiplication++;
+        i++;
+      }
+      Serial.print("L multiplication: ");
+      Serial.println(multiplication);
+      rotate_left(90*multiplication);
+      multiplication=1;
+    }
+  }
+  //End after path is finished
+  while(1){
+    
+  }
+}
+
 
 void move_forward (int distance_cm) {
   encoder_left = 0;
@@ -451,101 +577,6 @@ void move_backward (int distance_cm) {
   delay(50);
 }
 
-// Rotation
-// Accelerating and decelerating slowly
-void rotate_left_ramp(int angle) {
-  encoder_right = 0;
-  encoder_left = 0;
-  double compensation = 0;
-  error = 0;
-  integralError = 0;
-  if (angle <= 5) target_ticks = angle * 5.2;
-  else if (angle <= 10) target_ticks = angle * 6.3;
-  else if (angle <= 15) target_ticks = angle * 6.4;
-  else if (angle <= 30) target_ticks = angle * 7.7; //7.72
-  else if (angle <= 45) target_ticks = angle * 8.01; //8.635
-  else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.5; // calibration redone on 11/10
-  else if (angle <= 180) target_ticks = angle * 9.1; // calibration redone on 26/9
-  else if (angle <= 360) target_ticks = angle * 9.12; // calibration redone on 26/9
-  else if (angle <= 540) target_ticks = angle * 9.11; // calibration redone on 26/9
-  else if (angle <= 720) target_ticks = angle * 9.12; // calibration redone on 26/9
-  else if (angle <= 900) target_ticks = angle * 9.11; // calibration redone on 26/9
-  else if (angle <= 1080) target_ticks = angle * 9.1; // calibration redone on 26/9
-  else target_ticks = angle * 9.1;
-  
-  // ramping up
-  while (encoder_right < target_ticks * 0.2 )
-  {
-    compensation = tune_pid();
-    md.setSpeeds(- (150 + compensation), 150 - compensation);
-  }
-
-  // achieveing max speed  
-  while (encoder_right < target_ticks * 0.7) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(left_rotate_speed + compensation), (right_rotate_speed - compensation));
-  }
-
-  // ramping down
-  while (encoder_right < target_ticks) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(150 + compensation), (150 - compensation));
-  }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  delay(80);
-  md.setSpeeds(0, 0);
-  delay(50);
-}
-
-void rotate_right_ramp(int angle) {
-  encoder_right = 0;
-  encoder_left = 0;
-  double compensation = 0;
-  error = 0;
-  integralError = 0;
-  if (angle <= 5) target_ticks = angle * 3.7;
-  else if (angle <= 10) target_ticks = angle * 6.3;
-  else if (angle <= 15) target_ticks = angle * 6.4;
-  else if (angle <= 30) target_ticks = angle * 7.7; //7.72
-  else if (angle <= 45) target_ticks = angle * 8.01; //8.635
-  else if (angle <= 60) target_ticks = angle * 8.3;
-  else if (angle <= 90) target_ticks = angle * 8.51; //8.643
-  else if (angle <= 180) target_ticks = angle * 9.75;    //tune 180
-  else if (angle <= 360) target_ticks = angle * 9.37;
-  else if (angle <= 720) target_ticks = angle * 9.15;
-  else if (angle <= 900) target_ticks = angle * 9.16;
-  else if (angle <= 1080) target_ticks = angle * 9.06;
-  else target_ticks = angle * 9.0;
-
-  // ramping up
-  while (encoder_right < target_ticks * 0.2 )
-  {
-    compensation = tune_pid();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
-  }
-
-  // achieving max speed
-  while (encoder_right < target_ticks * 0.7) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(left_rotate_speed + compensation, -(right_rotate_speed - compensation));
-  }
-
-  // ramping down
-  while (encoder_right < target_ticks) 
-  {
-    compensation = tune_pid();
-    md.setSpeeds(150 + compensation, -(150 - compensation));
-  }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  delay(80);
-  md.setSpeeds(0, 0);
-  delay(50);
-}
-
 // Without ramp
 void rotate_left(int angle) {
   encoder_right = 0;
@@ -609,14 +640,8 @@ void rotate_right(int angle) {
   md.setSpeeds(0, 0);
   delay(50);
 }
-
-void stop_robot() {
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  md.setSpeeds(0, 0);
-}
-
 /////////////////////////////////////////////////////////////////////////
-///////////////////////////////PID TUNING////////////////////////////////
+/////////////////////////SECTION 5 - PID TUNING//////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
 // interrupts to be called for counting the number of ticks from encoder output 
@@ -654,8 +679,9 @@ double tune_pid () {
   return compensation;
 }
 
+
 /////////////////////////////////////////////////////////////////////////
-///////////////////////////ROBOT SENSOR CONTROL//////////////////////////
+/////////////////SECTION 6 - ROBOT SENSOR CONTROL////////////////////////
 /////////////////////////////////////////////////////////////////////////
 
 //Takes a median of the distance for accurate reading 
@@ -680,20 +706,44 @@ int get_median_distance (SharpIR sensor) {
 
 // Robot calibration
 
+
+void read_sensor_readings(){
+  left_distance = get_median_distance(SENSOR_LEFT);
+  center_left_distance = get_median_distance(SENSOR_C_LEFT);
+  center_distance = get_median_distance(SENSOR_C_BOT);
+  center_right_distance = get_median_distance(SENSOR_C_RIGHT);
+  right_distance = get_median_distance(SENSOR_RIGHT);
+  right_long_distance = get_median_distance(SENSOR_RIGHT_LONG);
+  if ((right_distance - SIDE_SHORT_OFFSET) > 15) 
+    right_distance = right_long_distance - SIDE_LONG_OFFSET + 4 + SIDE_SHORT_OFFSET;
+  Serial.print("AR2PC|");
+  Serial.print(left_distance-SIDE_SHORT_OFFSET);
+  Serial.print(":");
+  Serial.print(center_left_distance-FRONT_SHORT_OFFSET);
+  Serial.print(":");
+  Serial.print(center_distance-FRONT_SHORT_OFFSET);
+  Serial.print(":");
+  Serial.print(center_right_distance-FRONT_SHORT_OFFSET);
+  Serial.print(":");
+  Serial.print(right_distance-SIDE_SHORT_OFFSET);
+  Serial.print("\0");
+  Serial.print("\n");
+  Serial.flush();
+}
+
+
+/////////////////////////////////////////////////////////////////////////
+/////////////////SECTION 7 - ROBOT SELF CALIBRATION//////////////////////
+/////////////////////////////////////////////////////////////////////////
+
+
 void bot_calibration()
 {
   align_angle();
   align_distance();
 }
 
-void close_avoidance()
-{
-  int initial_right_distance = get_median_distance(SENSOR_C_RIGHT);
-  int initial_left_distance = get_median_distance(SENSOR_C_LEFT);
-  if ( (initial_left_distance > 14) || (initial_right_distance > 14) ) move_backward_ramp(2);
-}
-
-// Align the position ances of the robot to the arena grids
+// Align the position of the robot to the arena grids
 void align_distance(){
   int center_left_distance, center_distance, center_right_distance;  
   center_left_distance = get_median_distance(SENSOR_C_LEFT)-FRONT_SHORT_OFFSET;
@@ -720,7 +770,7 @@ void align_distance(){
   }
 }
 
-// Correct the angle of the robot such that left and right parts of the robot are at equal distances from an obstacle
+// Correct the angle of the robot so the robot can be straightened
 void align_angle(){
   int current_left_obstacle_distance = get_median_distance(SENSOR_LEFT)-SIDE_SHORT_OFFSET;
   double error = current_left_obstacle_distance - initial_left_obstacle_distance;
@@ -735,130 +785,9 @@ void align_angle(){
   initial_left_obstacle_distance = current_left_obstacle_distance;
 }
 
-void read_sensor_readings(){
-  left_distance = get_median_distance(SENSOR_LEFT);
-  center_left_distance = get_median_distance(SENSOR_C_LEFT);
-  center_distance = get_median_distance(SENSOR_C_BOT);
-  center_right_distance = get_median_distance(SENSOR_C_RIGHT);
-  right_distance = get_median_distance(SENSOR_RIGHT);
-  right_long_distance = get_median_distance(SENSOR_RIGHT_LONG);
-  if ((right_distance - SIDE_SHORT_OFFSET) > 15) 
-    right_distance = right_long_distance - SIDE_LONG_OFFSET + 4 + SIDE_SHORT_OFFSET;
-  Serial.print("AR2PC|");
-  Serial.print(left_distance-SIDE_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(center_left_distance-FRONT_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(center_distance-FRONT_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(center_right_distance-FRONT_SHORT_OFFSET);
-  Serial.print(":");
-  Serial.print(right_distance-SIDE_SHORT_OFFSET);
-  Serial.print("\0");
-  Serial.print("\n");
-  Serial.flush();
-}
 
-// Checklist task: avoid one obstacle placed on a 150 cm path
-void avoid_obstacle(){
-  int distance_moved = 0;
-  int ditance_turned = 0;
-  int obst_height = 0;
-  int distance_turned = 0;
-  int moving_distance = 0;
-  Serial.println("Before Loop 1");
-  Serial.print("SENSOR_C_RIGHT: ");
-  Serial.println(get_median_distance(SENSOR_C_RIGHT));
-  Serial.print("SENSOR_C_LEFT: ");
-  Serial.println(get_median_distance(SENSOR_C_LEFT));
-  Serial.print("SENSOR_C_BOT: ");
-  Serial.println(get_median_distance(SENSOR_C_BOT));
-  // going straight before robot collides into the obstacle
-  Serial.println();
-  // As long as all the distance readings are more than 10 cm, move forward
-  // Once it is less than 10, obstacle is detected and call for obstacle avoidance
-  while ((get_median_distance(SENSOR_C_RIGHT)- SIDE_SHORT_OFFSET) > 10 && ((get_median_distance(SENSOR_C_LEFT)-SIDE_SHORT_OFFSET) > 10)) { 
-    // if ((get_median_distance(SENSOR_C_RIGHT)-SIDE_SHORT_OFFSET)>(get_median_distance(SENSOR_C_LEFT)-SIDE_SHORT_OFFSET))
-    // {
-    //   //move the shorter distance sensed by one of the sensors
-    //   moving_distance = get_median_distance(SENSOR_C_LEFT);
-    // }
-    // else 
-    // {
-    //   moving_distance = get_median_distance(SENSOR_C_RIGHT);
-    // }
-    move_forward_ramp(10);
-    distance_moved += 10 ;
-  }
-  // Encountered obstacle, turn for avoidance 
-  // First turn to the left
-  rotate_left(90);
-  // Move along the length of the obstance until the obstacle is detected cleared by the right sensor
-  while ((get_median_distance(SENSOR_RIGHT) - SIDE_SHORT_OFFSET) < 15) {
-    move_forward_ramp(10);
-    distance_turned += 10;
-  }
-  // Get one block clearance of the obstacle
-  move_forward_ramp(20);
-  // Second turn to the right
-  rotate_right(90);
-  // Get one block clearance of the obstacle
-  move_forward_ramp(20);
-  // Move along the breadth of the obstacle until the obstacle is detected cleared by the right sensor
-  while ((get_median_distance(SENSOR_RIGHT)-SIDE_SHORT_OFFSET)<15) {
-    Serial.println("Loop 3");
-    Serial.print("SENSOR_LEFT");
-    Serial.println(get_median_distance(SENSOR_LEFT));
-    move_forward_ramp(10);
-    obst_height +=10;
-  }
-  // Get one block clearance of the obstacle
-  move_forward_ramp(20);
-  // Third turn to the right
-  rotate_right(90);
-  // Moves back on the original line
-  move_forward_ramp(20);
-  // Fourth turn to get back to the original path and complete the rest of the straight lines 
-  rotate_left(90);
-  // 150 cm is the full length to be moved. Move straight through the rest of maze.
-  move_forward_ramp(150 - distance_moved - obst_height - 40);
-  while(1) 
-  {
-    // End of avoidance
-  }
-}
+//////////////////////////////////////////////////
+///////////////SECTON 8 - DUBUGGING///////////////
+//////////////////////////////////////////////////
 
-// Checklist task: Useless curve without pivoting
-void avoid_obstacle_curve() {
-  delay(50);
-  double comp;
-  int right_distance = get_median_distance(SENSOR_C_RIGHT);
-  int left_distance = get_median_distance(SENSOR_C_LEFT);
-  // before it turns
-  while(right_distance >= 25 && left_distance >= 25)
-  {
-    md.setM2Speed(200);
-    delay(2);
-    md.setM1Speed(200);
-    comp = tune_pid();
-    // md.setSpeeds(200, 200);
-    delay(50);
-    // move_forward_ramp(10);
-    right_distance = SENSOR_C_RIGHT.distance();
-    left_distance = SENSOR_C_LEFT.distance();
-  }
-  //start of the first turn
-  md.setM2Speed(0);
-  delay(1500);
-  md.setM2Speed(200);
-  md.setM1Speed(0);
-  delay(1500);
-  md.setM1Speed(200);
-  delay(1200);
-  md.setM1Speed(0);
-  delay(1500);
-  md.setM1Speed(200);
-  md.setM2Speed(0);
-  delay(1500);
-  md.setBrakes(400,400);
-}
+
