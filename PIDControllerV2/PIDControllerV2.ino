@@ -72,6 +72,8 @@ void setup() {
   PCintPort::attachInterrupt(RIGHT_MOTOR_PIN, right_encoder_rising, HIGH);
   left_straight_speed = 400; //250
   right_straight_speed = 400; //250
+  left_straight_slow_speed = 300;
+  right_straight_slow_speed = 300;
   left_rotate_speed = 350; //150
   right_rotate_speed = 350; //150
   left_rotate_slow_speed = 275; // for fastest path exploration
@@ -203,28 +205,22 @@ void move_forward_ramp(int distance_cm) {
   else if(distance_cm<=170) target_ticks = distance_cm * 60.5; 
   else target_ticks = distance_cm * 60.5;
   
-  while (encoder_right < target_ticks * 0.1)
+  while (encoder_right < target_ticks * 0.2)
   {
     compensation = tune_pid();
-    md.setSpeeds(100 + compensation, 100 - compensation);
+    md.setSpeeds(150 + compensation, 150 - compensation);
   }
   
-  while (encoder_right < target_ticks * 0.3)
+  while (encoder_right < target_ticks * 0.7)
   {
     compensation = tune_pid();
-    md.setSpeeds(125 + compensation, 125 - compensation);
-  }
-  
-  while (encoder_right < target_ticks * 0.8)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(200 + compensation, 200 - compensation);
+    md.setSpeeds(left_straight_slow_speed + compensation, right_straight_slow_speed - compensation);
   }
   
   while (encoder_right < target_ticks)
   {
     compensation = tune_pid();
-    md.setSpeeds(125 + compensation, 125 - compensation);
+    md.setSpeeds(150 + compensation, 150 - compensation);
   }
   md.setBrakes(left_ramp_brake_speed, right_ramp_brake_speed);
   delay(25);
@@ -260,28 +256,22 @@ void move_backward_ramp(int distance_cm) {
   else if(distance_cm<=170) target_ticks = distance_cm * 72.5;
   else target_ticks = distance_cm * 72.5;
   
-  while (encoder_right < target_ticks * 0.1)
+  while (encoder_right < target_ticks * 0.2)
   {
     compensation = tune_pid();
-    md.setSpeeds(-(100 + compensation), -(100 - compensation));
+    md.setSpeeds(-(150 + compensation), -(150 - compensation));
   }
   
-  while (encoder_right < target_ticks * 0.3)
+  while (encoder_right < target_ticks * 0.7)
   {
     compensation = tune_pid();
-    md.setSpeeds(-(125 + compensation), -(125 - compensation));
-  }
-  
-  while (encoder_right < target_ticks * 0.8)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(-(200 + compensation), -(200 - compensation));
+    md.setSpeeds(-(300 + compensation), -(300 - compensation));
   }
   
   while (encoder_right < target_ticks)
   {
     compensation = tune_pid();
-    md.setSpeeds(-(125 + compensation), -(125 - compensation));
+    md.setSpeeds(-(150 + compensation), -(150 - compensation));
   }
   //Okay at HPL
   //md.setBrakes(375, 400);
@@ -445,7 +435,7 @@ void fastest_path(char* rpi_message) {
 }
 
 
-void move_forward (int distance_cm) {
+void move_forward(int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
   double compensation = 0;
@@ -511,7 +501,7 @@ void move_forward (int distance_cm) {
   delay(50);
 }
 
-void move_backward (int distance_cm) {
+void move_backward(int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
   double compensation = 0;
