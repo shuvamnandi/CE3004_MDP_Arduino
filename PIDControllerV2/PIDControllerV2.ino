@@ -88,33 +88,34 @@ void setup() {
 }
 
 void loop() {
-  char* rpiMsg = get_rpi_message();
-  if(strlen(rpiMsg)<=0) {
-    return;
-  }
-  // Single character commands
-  else if (strlen(rpiMsg) == 1) {
-    //Serial.print("XXXXXXXXXXXXXXX strlen(rpiMsg) == 1: ");
-    //Serial.println(rpiMsg);
-    if (move_counter > 5)
-      align_angle();
-    move_robot(rpiMsg[0]);
-    read_sensor_readings();
-    //set_rpi_message(left_distance, center_left_distance, center_distance, center_right_distance, right_distance);
-    memset(rpiMsg, 0, sizeof(rpiMsg));
-  }
-  // Multiple characters in single command, used in fastest path
-  else {
-    int n = strlen(rpiMsg);
-    if (rpiMsg[0]=='X') {
-      fastest_path(rpiMsg);
-    }
-    memset(rpiMsg, 0, sizeof(rpiMsg));
-    // End of fastest path
-    while(1){ 
-    }
-  }
-  Serial.flush();
+  rotate_right_ramp(90);
+  // char* rpiMsg = get_rpi_message();
+  // if(strlen(rpiMsg)<=0) {
+  //   return;
+  // }
+  // // Single character commands
+  // else if (strlen(rpiMsg) == 1) {
+  //   //Serial.print("XXXXXXXXXXXXXXX strlen(rpiMsg) == 1: ");
+  //   //Serial.println(rpiMsg);
+  //   if (move_counter > 5)
+  //     align_angle();
+  //   move_robot(rpiMsg[0]);
+  //   read_sensor_readings();
+  //   //set_rpi_message(left_distance, center_left_distance, center_distance, center_right_distance, right_distance);
+  //   memset(rpiMsg, 0, sizeof(rpiMsg));
+  // }
+  // // Multiple characters in single command, used in fastest path
+  // else {
+  //   int n = strlen(rpiMsg);
+  //   if (rpiMsg[0]=='X') {
+  //     fastest_path(rpiMsg);
+  //   }
+  //   memset(rpiMsg, 0, sizeof(rpiMsg));
+  //   // End of fastest path
+  //   while(1){ 
+  //   }
+  // }
+  // Serial.flush();
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -863,34 +864,34 @@ void align_angle() {
   initial_left_obstacle_distance = current_left_obstacle_distance;
 }
 
-// Alignment with an obstance in front before rotation happens
-void align_angle_obstacle() {
-  int center_distance, left_distance, right_distance;  
-  left_distance = get_median_distance(SENSOR_C_LEFT);
-  right_distance = get_median_distance(SENSOR_C_RIGHT);
-  center_distance = get_median_distance(SENSOR_C_BOT);
-  int difference = 2*center_distance - left_distance - right_distance;
-  if ((difference < 4) || (difference > -4)){ 
-    while(1)
-    {
-      //Serial.println("left_distance");
-      //Serial.println(left_distance);
-      //Serial.println("right_distance");
-      //Serial.println(right_distance);
-      left_distance = get_median_distance(SENSOR_C_LEFT);
-      right_distance = get_median_distance(SENSOR_C_RIGHT);
-      int error = left_distance - right_distance; // if the error value is negative, the robot should move to the 
-      if (error >= 1) {
-        error_alignment_rotate_left(1);
-      }
-      else if (error <= -1) {
-        error_alignment_rotate_right(1);
-      }
-      else 
-        break;
-    }
-  }
-}
+// // Alignment with an obstance in front before rotation happens
+// void align_angle_obstacle() {
+//   int center_distance, left_distance, right_distance;  
+//   left_distance = get_median_distance(SENSOR_C_LEFT);
+//   right_distance = get_median_distance(SENSOR_C_RIGHT);
+//   center_distance = get_median_distance(SENSOR_C_BOT);
+//   int difference = 2*center_distance - left_distance - right_distance;
+//   if ((difference < 4) || (difference > -4)){ 
+//     while(1)
+//     {
+//       //Serial.println("left_distance");
+//       //Serial.println(left_distance);
+//       //Serial.println("right_distance");
+//       //Serial.println(right_distance);
+//       left_distance = get_median_distance(SENSOR_C_LEFT);
+//       right_distance = get_median_distance(SENSOR_C_RIGHT);
+//       int error = left_distance - right_distance; // if the error value is negative, the robot should move to the 
+//       if (error >= 1) {
+//         error_alignment_rotate_left(1);
+//       }
+//       else if (error <= -1) {
+//         error_alignment_rotate_right(1);
+//       }
+//       else 
+//         break;
+//     }
+//   }
+// }
 
 //////////////////////////////////////////////////
 ///////////////SECTON 8 - DUBUGGING///////////////
