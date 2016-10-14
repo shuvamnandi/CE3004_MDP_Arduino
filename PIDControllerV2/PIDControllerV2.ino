@@ -61,9 +61,8 @@ SharpIR SENSOR_C_BOT (SENSOR_CB_PIN, 1080); // center bottom, short range sensor
 SharpIR SENSOR_C_LEFT (SENSOR_CL_PIN, 1080);  // center left, short range sensor
 SharpIR SENSOR_C_RIGHT (SENSOR_CR_PIN, 1080);  // center right, short range sensor
 
-
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.flush();
   md.init();
   pinMode(LEFT_MOTOR_PIN, INPUT);
@@ -94,9 +93,7 @@ void loop() {
   }
   // Single character commands
   else if (strlen(rpiMsg) == 1) {
-    //Serial.print("XXXXXXXXXXXXXXX strlen(rpiMsg) == 1: ");
-    //Serial.println(rpiMsg);
-    if (move_counter > 5)
+    if (move_counter > 3)
       align_angle();
     move_robot(rpiMsg[0]);
     read_sensor_readings();
@@ -161,8 +158,8 @@ char* get_rpi_message() {
 // 'M': Emergency robot calibration
 // 'S': Stop robot
 void move_robot(char command) {
-  Serial.print("XXXXXXXXXXXXRPI command received by Arduino: ");
-  Serial.println(command);
+  //Serial.print("XXXXXXXXXXXXRPI command received by Arduino: ");
+  //Serial.println(command);
   switch(command) {
     case 'A': align_angle(); break;
     case 'D': align_distance(); break;
@@ -232,7 +229,7 @@ void move_forward_ramp(int distance_cm) {
   md.setBrakes(left_ramp_brake_speed, right_ramp_brake_speed);
   delay(25);
   md.setSpeeds(0, 0);
-  //delay(50);
+  delay(50);
   move_counter++;
 }
 
@@ -243,7 +240,7 @@ void move_backward_ramp(int distance_cm) {
   error = 0.0;
   integralError = 0.0;
   //target_ticks = distance_cm * 58.5;
-  if (distance_cm<=9) target_ticks = distance_cm * 46.4;
+  if (distance_cm<=9) target_ticks = distance_cm * 43;
   else if (distance_cm<=10) target_ticks = distance_cm * 54.4;
   else if(distance_cm<=20) target_ticks = distance_cm * 58.3;
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
@@ -293,7 +290,7 @@ void move_backward_ramp(int distance_cm) {
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(25);
   md.setSpeeds(0, 0);
-  //delay(50);
+  delay(50);
 }
 
 // Rotation
@@ -520,7 +517,6 @@ void move_backward (int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  //target_ticks = distance_cm * 58.5;
   if (distance_cm<= 10) target_ticks = distance_cm * 58.3;
   else if(distance_cm<=20) target_ticks = distance_cm * 58.3;
   else if(distance_cm<=30) target_ticks = distance_cm * 58.5;
@@ -688,7 +684,7 @@ double tune_pid () {
 /////////////////////////////////////////////////////////////////////////
 
 //Takes a median of the distance for accurate reading 
-int get_distance (SharpIR sensor) {
+int get_distance(SharpIR sensor) {
  int distance = sensor.distance();
  // if any snesor reading is more than 70, return as 70
  if (distance > 70) {
@@ -697,11 +693,11 @@ int get_distance (SharpIR sensor) {
  return distance;
 }
 
-int get_median_distance (SharpIR sensor) {
+int get_median_distance(SharpIR sensor) {
   RunningMedian buffer = RunningMedian(100);
-  for (int i = 0; i < 25; i++)
+  for (int i = 0; i < 10; i++)
   {
-      delay(0.2);
+      delay(0.1);
       buffer.add(get_distance(sensor)); 
   }
   return buffer.getMedian();
@@ -741,7 +737,7 @@ void robot_calibration()
   align_distance();
 }
 
-void error_alignment_forward (int distance_cm) {
+void error_alignment_forward(int distance_cm) {
   encoder_left = 0;
   encoder_right = 0;
   error = 0.0;
@@ -786,7 +782,7 @@ void error_alignment_rotate_left(double error_angle) {
   while (encoder_right < target_ticks) 
   {
     compensation = tune_pid();
-    md.setSpeeds(-(80 + compensation), 80 - compensation);
+    md.setSpeeds(-80, 80);
   }
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
@@ -803,7 +799,7 @@ void error_alignment_rotate_right(double error_angle) {
   while (encoder_right < target_ticks) 
   {
     compensation = tune_pid();
-    md.setSpeeds(80 + compensation, -(80 - compensation));
+    md.setSpeeds(80, -80);
   }
   md.setBrakes(left_brake_speed, right_brake_speed);
   delay(80);
