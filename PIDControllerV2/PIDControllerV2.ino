@@ -90,13 +90,15 @@ void setup() {
 }
 
 void loop() {
+  //simulate();
+
   char* rpiMsg = get_rpi_message();
   if (strlen(rpiMsg) <= 0) {
     return;
   }
   // Single character commands
   else if (strlen(rpiMsg) == 1) {
-    if ((total_moves_counter % 5) == 0) {
+    if ((total_moves_counter % 2) == 0) {
       align_wall();
     }
     if (forward_moves_counter >= 3) {
@@ -177,7 +179,7 @@ void move_robot(char command) {
     case 'F': move_forward_ramp(10); break;
     case 'H': stop_robot(); break;
     case 'L': rotate_left_ramp(90); break;
-    case 'R': align_distance(); align_angle(); rotate_right_ramp(90); align_angle(); break;
+    case 'R': rotate_right_ramp(90); align_wall(); break;
     case 'B': move_backward_ramp(10); break;
     case 'M': robot_calibration(); break;
     case 'S': break; // Sensor readings are taken after call is returned to the calling function
@@ -879,19 +881,23 @@ void align_angle() {
   double error = current_left_obstacle_distance - initial_left_obstacle_distance;
   double error_angle = asin(abs(error)/(forward_moves_counter*10))*(180/3.1459);
   //Serial.print("Error: ");
-  //Serial.println(error);
   //Serial.print("Error angle: ");
   //Serial.println(error_angle);
-  if ((error > 0) && (error < 6)){
-    error_alignment_rotate_left(error_angle);
+  if (current_left_obstacle_distance < 10){
+    if ((error > 0) && (error < 6)){
+      error_alignment_rotate_left(error_angle);
+    }
+    else if ((error < 0) && (error > -6)){
+      error_alignment_rotate_right(error_angle);
+    }
+    // Update the number of moves made by robot after alignment is done
+    forward_moves_counter = 0;
+    initial_left_obstacle_distance = current_left_obstacle_distance;
+    delay(50);
   }
-  else if ((error < 0) && (error > -6)){
-    error_alignment_rotate_right(error_angle);
+  if (current_left_obstacle_distance > 10) {
+    forward_moves_counter = 0;
   }
-  // Update the number of moves made by robot after alignment is done
-  forward_moves_counter = 0;
-  initial_left_obstacle_distance = current_left_obstacle_distance;
-  delay(50);
 }
 
 // contstantly check for the distance between the robot and the wall. if the wall is big enough for angle calibration, angle calibration will be done on top of distance 
@@ -905,6 +911,7 @@ void align_wall(){
       align_angle_obstacle();   //align the angle between the robot and the obstacle if the block is big enough
       align_distance();       //check for the distance once again after the abngle is being aligned
       rotate_right_ramp(90);
+      forward_moves_counter = 0;
     }
   }
 }
@@ -947,15 +954,31 @@ void align_angle_obstacle() {
 //////////////////////////////////////////////////
 
 void simulate() {
+  Serial.println("forward");
+  move_forward_ramp(10);
+  delay(10);
+Serial.println("forward end");
+
+
+  if (forward_moves_counter >= 3) {
+    Serial.println("enter angle");
+      align_angle();
+      delay(10);
+      Serial.println("exit angle");
+    }
   left_distance = get_median_distance(SENSOR_LEFT);
   center_left_distance = get_median_distance(SENSOR_C_LEFT);
   center_distance = get_median_distance(SENSOR_C_BOT);
   center_right_distance = get_median_distance(SENSOR_C_RIGHT);
   right_distance = get_median_distance(SENSOR_RIGHT);
   right_long_distance = get_median_distance(SENSOR_RIGHT_LONG);
-  if ((center_left_distance<=15)&&(center_right_distance<=15)&&(center_distance<=15)) {
-    align_angle();
-    align_distance();
+
+  if ((center_left_distance<=10)||(center_right_distance<=10)||(center_distance<=10)) {
+     Serial.println("enter rotate");
     rotate_right_ramp(90);
+   delay(100);
   }
+
+    align_wall();
+    delay(100);
 }
