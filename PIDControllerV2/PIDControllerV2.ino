@@ -439,9 +439,9 @@ void fastest_path(char* rpi_message) {
       //Serial.print("R multiplication: ");
       //Serial.println(multiplication);
       if (fastest_path == 1)
-        rotate_right(10 * multiplication);
+        rotate_right(90 * multiplication);
       else
-        rotate_right_ramp(10 * multiplication);
+        rotate_right_ramp(90 * multiplication);
       multiplication=1;
     }
     else if ((rpiMsg[i]=='L')) {
@@ -452,9 +452,9 @@ void fastest_path(char* rpi_message) {
       //Serial.print("L multiplication: ");
       //Serial.println(multiplication);
       if (fastest_path == 1)
-        rotate_left(10 * multiplication);
+        rotate_left(90 * multiplication);
       else
-        rotate_left_ramp(10 * multiplication);
+        rotate_left_ramp(90 * multiplication);
       multiplication=1;
     }
   }
