@@ -178,7 +178,7 @@ void move_robot(char command) {
     case 'F': move_forward_ramp(10); break;
     case 'H': stop_robot(); break;
     case 'L': rotate_left_ramp(90); break;
-    case 'R': rotate_right_ramp(90); align_wall(); break;
+    case 'R': align_wall(); rotate_right_ramp(90); align_wall(); break;
     case 'B': move_backward_ramp(10); break;
     case 'M': robot_calibration(); break;
     case 'S': break; // Sensor readings are taken after call is returned to the calling function
@@ -909,6 +909,7 @@ void align_wall(){
       align_angle_obstacle();        //align the angle between the robot and the obstacle if the block is big enough
       align_distance();        //check for the distance once again after the abngle is being aligned
       rotate_right_ramp(90);
+      forward_moves_counter = 0;
     }
   }
   delay(100);
