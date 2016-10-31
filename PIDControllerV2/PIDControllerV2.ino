@@ -721,8 +721,6 @@ void read_sensor_readings() {
     right_distance = right_long_distance - SIDE_LONG_OFFSET + 4 + SIDE_SHORT_OFFSET;
   Serial.print("AR2PC");
   Serial.print("|");
-  Serial.print(total_moves_counter);
-  Serial.print("|");
   Serial.print(left_distance-SIDE_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(center_left_distance-FRONT_SHORT_OFFSET);
@@ -732,6 +730,8 @@ void read_sensor_readings() {
   Serial.print(center_right_distance-FRONT_SHORT_OFFSET);
   Serial.print(":");
   Serial.print(right_distance-SIDE_SHORT_OFFSET);
+  Serial.print("|");
+  Serial.print(total_moves_counter);
   Serial.print("\0");
   Serial.print("\n");
   Serial.flush();
