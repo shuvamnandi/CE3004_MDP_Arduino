@@ -91,13 +91,15 @@ void setup() {
 }
 
 void loop() {
+
   char* rpiMsg = get_rpi_message();
   if (strlen(rpiMsg) <= 0) {
     return;
   }
   // Single character commands
   else if (strlen(rpiMsg) == 1) {
-    if (total_moves_counter % 3 == 0) {
+    align_angle_obstacle();
+    if (total_moves_counter % 2 == 1) {
       align_wall();
     }
     if (forward_moves_counter > 2) {
@@ -108,7 +110,7 @@ void loop() {
     //set_rpi_message(left_distance, center_left_distance, center_distance, center_right_distance, right_distance);
     memset(rpiMsg, 0, sizeof(rpiMsg));
   }
-  // Multiple characters in single command, used in fastest path
+  // Multiple characters in single command, used for fastest path
   else {
     int n = strlen(rpiMsg);
     if (rpiMsg[0]=='X') {
@@ -161,7 +163,7 @@ void move_robot(char command) {
     case 'F': move_forward_ramp(10); break;
     case 'H': stop_robot(); break;
     case 'L': rotate_left_ramp(90); break;
-    case 'R': rotate_right_ramp(90); align_wall(); break;
+    case 'R': align_wall(); rotate_right_ramp(90);  break;
     case 'B': move_backward_ramp(10); break;
     case 'M': robot_calibration(); break;
     case 'S': break; // Sensor readings are taken after call is returned to the calling function
@@ -328,6 +330,7 @@ void rotate_left_ramp(int angle) {
   md.setSpeeds(0, 0);
   delay(50);
   total_moves_counter++;
+  forward_moves_counter = 0;
 }
 
 void rotate_right_ramp(int angle) {
@@ -375,6 +378,7 @@ void rotate_right_ramp(int angle) {
   md.setSpeeds(0, 0);
   delay(50);
   total_moves_counter++;
+  forward_moves_counter = 0;
 }
 
 void stop_robot() {
@@ -387,12 +391,18 @@ void stop_robot() {
 /////////////////////////////////////////////////////////////////////////
 
 void fastest_path(char* rpi_message) {
-  int multiplication;
+  int multiplication=1;
   int fastest_path = 0;
   String rpiMsg(rpi_message);
   //Serial.println(rpiMsg);
   int str_length = rpiMsg.length();
+  Serial.print("AR2PC|Message length and content: ");
+  Serial.print(str_length);
+  Serial.print("|");
+  Serial.print(rpiMsg);
   int start_pos = 0;
+  Serial.print("AR2PC|");
+  Serial.print(rpiMsg[0]);
   if ((rpiMsg[0]=='X')) {
     start_pos = 1;
     fastest_path = 1;
@@ -403,46 +413,75 @@ void fastest_path(char* rpi_message) {
     //Serial.print(i);
     //Serial.print(":");
     //Serial.println(rpiMsg[i]);
+    
+    // for going straight
+    Serial.print("AR2PC|");
+    Serial.print(rpiMsg[i]);
+
     if ((rpiMsg[i]=='F')) {
       while (rpiMsg[i]==rpiMsg[i+1]) {
         multiplication++;
         i++;
       }
-      if (fastest_path == 1)
-        move_forward(10 * multiplication);
-      else
-        move_forward_ramp(10 * multiplication);
+      if (fastest_path == 1){
+        for (int x = 1; x <= multiplication; x++){
+          move_forward_ramp(10);
+          delay(300);
+        }
+      }
+      else{
+          for (int x = 1; x <= multiplication; x++){
+          move_forward_ramp(10);
+          delay(300);
+        }
+      }
       multiplication=1;
       delay(200);
-      Serial.flush();
     }
+
+    // for rotate right 
     else if ((rpiMsg[i]=='R')) {
       while (rpiMsg [i]==rpiMsg[i+1]) {
         multiplication++;
         i++;
       }
-      if (fastest_path == 1)
-        rotate_right(90 * multiplication);
-      else
-        rotate_right_ramp(90 * multiplication);
+      if (fastest_path == 1){
+        for (int x = 1; x <= multiplication; x++){
+            rotate_right_ramp(90);
+            delay(300);
+          }
+      }
+      else{
+        for (int x = 1; x <= multiplication; x++){
+            rotate_right_ramp(90);
+            delay(300);
+          }
+      }
       multiplication=1;
-      delay(100);
-      Serial.flush();
+      delay(200);
     }
+    
+    // for rotate left 
     else if ((rpiMsg[i]=='L')) {
       while (rpiMsg [i]==rpiMsg[i+1]) {
         multiplication++;
         i++;
       }
-      if (fastest_path == 1)
-        rotate_left(90 * multiplication);
-      else
-        rotate_left_ramp(90 * multiplication);
+      if (fastest_path == 1){
+        for (int x = 1; x <= multiplication; x++){
+          rotate_left_ramp(90);
+          delay(300);
+        }
+      }
+      else{
+        for (int x = 1; x <= multiplication; x++){
+          rotate_left_ramp(90);
+          delay(300);
+        }
+      }
       multiplication=1;
-      Serial.flush();
-      delay(100);
+      delay(200);
     }
-  }
   total_moves_counter = 0;
   Serial.print("AR2PC|Fastest Path Finished. The End.");
   Serial.print("\0");
@@ -450,77 +489,6 @@ void fastest_path(char* rpi_message) {
   Serial.flush();
   //End after path is finished
 }
-
-void move_forward(int distance_cm) {
-  encoder_left = 0;
-  encoder_right = 0;
-  double compensation = 0;
-  error = 0.0;
-  integralError = 0.0;
-  if (distance_cm <= 10) target_ticks = distance_cm * 58.3;
-  else if (distance_cm<=20) target_ticks = distance_cm * 58; // calibration done
-  else if (distance_cm<=30) target_ticks = distance_cm * 58.5;
-  else if (distance_cm<=40) target_ticks = distance_cm * 59.0;
-  else if (distance_cm<=50) target_ticks = distance_cm * 59.3;
-  else if (distance_cm<=60) target_ticks = distance_cm * 59.3;
-  else if (distance_cm<=70) target_ticks = distance_cm * 59.3;
-  else if (distance_cm<=80) target_ticks = distance_cm * 59.3;
-  else if (distance_cm<=90) target_ticks = distance_cm * 59.6; //calibration done
-  else if (distance_cm<=100) target_ticks = distance_cm * 60; //calibration redone on 26/9
-  else if (distance_cm<=110) target_ticks = distance_cm * 59.8; 
-  else if (distance_cm<=120) target_ticks = distance_cm * 60.3; //calibration redone on 26/9
-  else if (distance_cm<=130) target_ticks = distance_cm * 60.3; 
-  else if (distance_cm<=140) target_ticks = distance_cm * 60.5; 
-  else if (distance_cm<=150) target_ticks = distance_cm * 60.5; 
-  else if (distance_cm<=160) target_ticks = distance_cm * 60.5; //calibration redone on 26/9
-  else if (distance_cm<=170) target_ticks = distance_cm * 60.5; 
-  else target_ticks = distance_cm * 60.5;
-  
-  while (encoder_right < target_ticks * 0.1)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(150 + compensation, 150 - compensation);
-  }
-  
-  while (encoder_right < target_ticks * 0.25)
-  {
-    compensation = tune_pid(); 
-    md.setSpeeds(250 + compensation, 250 - compensation);
-  }
-
-  while (encoder_right < target_ticks * 0.35)
-  {
-    compensation = tune_pid(); 
-    md.setSpeeds(350 + compensation, 350 - compensation);
-  }
-
-  while (encoder_right < target_ticks * 0.65)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(left_straight_fastest_speed + compensation, right_straight_fastest_speed - compensation);
-  }
-  
-  while (encoder_right < target_ticks * 0.75)
-  {
-    compensation = tune_pid(); 
-    md.setSpeeds(350 + compensation, 350 - compensation);
-  }
-
-  while (encoder_right < target_ticks * 0.85)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(250 + compensation, 250 - compensation);
-  }
-
-  while (encoder_right < target_ticks)
-  {
-    compensation = tune_pid();
-    md.setSpeeds(125 + compensation, 125 - compensation);
-  }
-  md.setBrakes(left_brake_speed, right_brake_speed);
-  delay(80);
-  md.setSpeeds(0, 0);
-  delay(100);
 }
 
 void move_backward(int distance_cm) {
@@ -673,7 +641,7 @@ double tune_pid () {
   double Kp, Ki, Kd, p, i;
   // Okay at HWL2
   // Battery Voltage = 6.36V, Kp = 51.5
-  Kp = 49.5; // increase in case it is going left, decrease in case it is going right
+  Kp = 48.5; // increase in case it is going left, decrease in case it is going right
   Ki = 0.1;
   //Kd = 0.01;
   error = encoder_right - encoder_left;
@@ -755,7 +723,7 @@ void error_alignment_forward(int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm<=5) target_ticks = distance_cm * 56.9;
+  if (distance_cm<=5) target_ticks = distance_cm * 66.8;
   else if (distance_cm<=10) target_ticks = distance_cm * 52.8; // calibration redone on 12/10
   while (encoder_right < target_ticks )
   {
@@ -774,7 +742,7 @@ void error_alignment_backward(int distance_cm) {
   double compensation = 0;
   error = 0.0;
   integralError = 0.0;
-  if (distance_cm<=5) target_ticks = distance_cm * 49.4;
+  if (distance_cm<=5) target_ticks = distance_cm * 45.4;
   else if (distance_cm<=10) target_ticks = distance_cm * 49.8; // calibration redone on 12/10
   while (encoder_right < target_ticks )
   {
@@ -826,7 +794,7 @@ void align_distance() {
   delay(100);
   int center_left_distance, center_distance, center_right_distance;  
   // Align using the center left sensor
-  center_left_distance = get_median_distance(SENSOR_C_LEFT)-FRONT_SHORT_OFFSET-1;
+  center_left_distance = get_median_distance(SENSOR_C_LEFT)-FRONT_SHORT_OFFSET;
   //Serial.print("center_left_distance: ");
   //Serial.println(center_left_distance);
   if (center_left_distance < 5 && center_left_distance > -5) {
@@ -837,7 +805,7 @@ void align_distance() {
   }
 
   // Align using the center sensor
-  center_distance = get_median_distance(SENSOR_C_BOT)-FRONT_SHORT_OFFSET-1;
+  center_distance = get_median_distance(SENSOR_C_BOT)-FRONT_SHORT_OFFSET;
   //Serial.print("center_distance :");
   //Serial.println(center_distance);
   if (center_distance < 5 && center_distance > -5) {
@@ -847,7 +815,7 @@ void align_distance() {
       error_alignment_backward(-center_distance);
   }
   // Align using the center sensor
-  center_right_distance = get_median_distance(SENSOR_C_RIGHT)-FRONT_SHORT_OFFSET-1;
+  center_right_distance = get_median_distance(SENSOR_C_RIGHT)-FRONT_SHORT_OFFSET;
   //Serial.print("center_right_distance :");
   //Serial.println(center_right_distance);
   if (center_right_distance < 5 && center_right_distance > -5) {
@@ -904,7 +872,9 @@ void align_angle() {
 // calibration. otherwise, only distance calibration will be done.
 void align_wall(){
   delay(100);
-  left_distance = get_median_distance(SENSOR_LEFT) - SIDE_SHORT_OFFSET;
+  int left_distance = get_median_distance(SENSOR_LEFT) - SIDE_SHORT_OFFSET;
+  int right_distance = get_median_distance(SENSOR_RIGHT) - SIDE_SHORT_OFFSET;
+  bool align_done = false;
   if (left_distance < 10) {    //to ensure that the calibration will only be used for obstacles within a block's distance.
     if (left_distance < -1 || left_distance > 1) { //call for the calibration as long as the robot is too close or too far from the wall
       rotate_left_ramp(90);
@@ -914,19 +884,21 @@ void align_wall(){
       rotate_right_ramp(90);
       forward_moves_counter = 0;
       total_moves_counter-=2; //to counter the two total_moves_counter++ statement in rotate_left_ramp() and rotate_right_ramp()
+      align_done = true;
     }
   }
-//  if (right_distance < 10) {    //to ensure that the calibration will only be used for obstacles within a block's distance.
-//    if (right_distance < 1 || right_distance > 1) { //call for the calibration as long as the robot is too close or too far from the wall
-//      rotate_left_ramp(90);
-//      align_distance();        //align the distance between  therobot and the obstacle 
-//      align_angle_obstacle();        //align the angle between the robot and the obstacle if the block is big enough
-//      align_distance();        //check for the distance once again after the abngle is being aligned
-//      rotate_right_ramp(90);
-//      forward_moves_counter = 0;
-//      total_moves_counter-=2; //to counter the two total_moves_counter++ statement in rotate_left_ramp() and rotate_right_ramp()
-//    }
-//  }
+  if (right_distance < 10 && !align_done) {    //to ensure that the calibration will only be used for obstacles within a block's distance.
+   if (right_distance < 1 || right_distance > 1) { //call for the calibration as long as the robot is too close or too far from the wall
+     rotate_right_ramp(90);
+     align_distance();        //align the distance between  therobot and the obstacle 
+     align_angle_obstacle();        //align the angle between the robot and the obstacle if the block is big enough
+     align_distance();        //check for the distance once again after the abngle is being aligned
+     rotate_left_ramp(90);
+     forward_moves_counter = 0;
+     total_moves_counter-=2; //to counter the two total_moves_counter++ statement in rotate_left_ramp() and rotate_right_ramp()
+     align_done = true;
+   }
+ }
   delay(100);
 }
 
